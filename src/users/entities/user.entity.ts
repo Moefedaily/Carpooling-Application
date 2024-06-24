@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Role } from 'src/roles/entities/role.entity';
+import { Trip } from 'src/trips/entities/trip.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
 
 @Entity()
 export class User {
@@ -12,20 +21,27 @@ export class User {
   password: string;
 
   @Column()
-  nom: string;
+  lastName: string;
 
   @Column()
-  prenom: string;
+  firstName: string;
 
   @Column()
-  date_naissance: Date;
+  birthDate: string;
 
   @Column()
-  numero_telephone: string;
+  phoneNumber: string;
 
   @Column()
-  moyen_paiement: string;
+  paymentMethod: string;
 
-  @Column()
-  id_role: number;
+  @Column({ default: false })
+  isEmailConfirmed: boolean;
+
+  @ManyToOne(() => Role)
+  role: Role;
+
+  @ManyToMany(() => Trip)
+  @JoinTable()
+  trips: Trip[];
 }

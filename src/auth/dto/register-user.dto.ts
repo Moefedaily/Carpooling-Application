@@ -1,5 +1,5 @@
 import {
-  IsDate,
+  IsDateString,
   IsEmail,
   IsString,
   MaxLength,
@@ -16,20 +16,18 @@ export class RegisterUserDto {
 
   @IsString()
   @MaxLength(20)
-  nom: string;
+  lastName: string;
 
   @IsString()
   @MaxLength(20)
-  prenom: string;
+  firstName: string;
 
-  @IsDate()
-  date_naissance: Date;
+  @IsDateString()
+  birthDate: string;
 
   @MaxLength(15)
-  numero_telephone: string;
+  phoneNumber: string;
 
   @MaxLength(20)
-  moyen_paiement: string;
-
-  id_role: number;
+  paymentMethod: string;
 }

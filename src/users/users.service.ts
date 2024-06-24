@@ -16,6 +16,10 @@ export class UsersService {
     return this.userRepository.find();
   }
 
+  async save(user: User): Promise<User> {
+    return this.userRepository.save(user);
+  }
+
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -42,5 +46,30 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     return result;
+  }
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+    return user;
+  }
+
+  async updatePassword(userId: number, newPassword: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User with id ${userId} not found`);
+    }
+    user.password = newPassword;
+    return this.userRepository.save(user);
+  }
+
+  async confirmEmail(userId: number): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User with id ${userId} not found`);
+    }
+    user.isEmailConfirmed = true;
+    return this.userRepository.save(user);
   }
 }
