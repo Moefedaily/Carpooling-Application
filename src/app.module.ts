@@ -12,7 +12,7 @@ import { EmailModule } from './email/email.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // make ConfigModule global
+      isGlobal: true,
     }),
     AuthModule,
     UsersModule,

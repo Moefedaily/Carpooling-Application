@@ -8,6 +8,15 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
+export enum TripStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  FULL = 'FULL',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
 @Entity()
 export class Trip {
   @PrimaryGeneratedColumn()
@@ -20,10 +29,10 @@ export class Trip {
   arrivalLocation: string;
 
   @Column()
-  departureDate: Date;
+  departureDate: string;
 
   @Column()
-  departureTime: Date;
+  departureTime: string;
 
   @Column()
   availableSeats: number;
@@ -34,8 +43,12 @@ export class Trip {
   @Column('text')
   description: string;
 
-  @Column()
-  status: string;
+  @Column({
+    type: 'enum',
+    enum: TripStatus,
+    default: TripStatus.PENDING,
+  })
+  status: TripStatus;
 
   @ManyToOne(() => User)
   driver: User;

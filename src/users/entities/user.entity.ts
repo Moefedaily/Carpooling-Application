@@ -6,8 +6,13 @@ import {
   Column,
   ManyToOne,
   ManyToMany,
-  JoinTable,
 } from 'typeorm';
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  DRIVER = 'DRIVER',
+  PASSENGER = 'PASSENGER',
+  BOTH = 'BOTH',
+}
 
 @Entity()
 export class User {
@@ -42,6 +47,5 @@ export class User {
   role: Role;
 
   @ManyToMany(() => Trip)
-  @JoinTable()
   trips: Trip[];
 }

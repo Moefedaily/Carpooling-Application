@@ -1,6 +1,8 @@
 import {
   IsDateString,
   IsEmail,
+  IsNumber,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
@@ -30,4 +32,8 @@ export class RegisterUserDto {
 
   @MaxLength(20)
   paymentMethod: string;
+
+  @IsNumber()
+  @IsOptional()
+  roleId?: number;
 }

@@ -17,6 +17,7 @@ import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
+import { RolesService } from 'src/roles/roles.service';
 
 @Injectable()
 export class AuthService {
@@ -30,11 +31,12 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private emailService: EmailService,
+    private rolesService: RolesService,
   ) {}
 
   async register(registerUserDto: RegisterUserDto): Promise<User> {
     try {
-      const { password, ...userData } = registerUserDto;
+      const { password, roleId, ...userData } = registerUserDto;
       const existingUser = await this.userRepository.findOne({
         where: { email: userData.email },
       });
@@ -42,17 +44,21 @@ export class AuthService {
         throw new ConflictException('Email already exists');
       }
       const hashedPassword = await bcrypt.hash(password, 10);
-      const defaultRole = await this.roleRepository.findOne({
-        where: { name: 'user' },
-      });
-      if (!defaultRole) {
-        throw new Error('Default role not found');
+      let role;
+      if (roleId) {
+        role = await this.rolesService.findOne(roleId);
+        if (!role) {
+          throw new NotFoundException(`Role with ID ${roleId} not found`);
+        }
+      } else {
+        role = await this.rolesService.findByName('passenger');
       }
+
       const user = this.userRepository.create({
         ...userData,
         password: hashedPassword,
         isEmailConfirmed: false,
-        role: defaultRole,
+        role: role,
       });
       const savedUser = await this.userRepository.save(user);
       const token = this.jwtService.sign({ email: user.email, sub: user.id });
