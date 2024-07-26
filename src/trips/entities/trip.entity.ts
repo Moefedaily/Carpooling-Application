@@ -5,8 +5,10 @@ import {
   ManyToOne,
   ManyToMany,
   JoinTable,
+  OneToMany,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Message } from 'src/messages/entities/message.entity';
 
 export enum TripStatus {
   PENDING = 'PENDING',
@@ -56,4 +58,7 @@ export class Trip {
   @ManyToMany(() => User)
   @JoinTable()
   passengers: User[];
+
+  @OneToMany(() => Message, (message) => message.trip)
+  messages: Message[];
 }

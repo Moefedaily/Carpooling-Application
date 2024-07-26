@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -7,6 +7,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -21,10 +23,14 @@ export class UsersService {
   }
 
   async findOne(id: number): Promise<User> {
+    this.logger.debug(`findOne called with id: ${id}`);
     const user = await this.userRepository.findOne({ where: { id } });
+
     if (!user) {
-      throw new NotFoundException('User not found');
+      this.logger.warn(`User with ID ${id} not found`);
+      throw new NotFoundException(`User with ID ${id} not found`);
     }
+    this.logger.debug(`User found: ${JSON.stringify(user)}`);
     return user;
   }
 

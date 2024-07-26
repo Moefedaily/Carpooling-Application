@@ -24,7 +24,7 @@ export class TripsController {
   @Post()
   create(@Body() createTripDto: CreateTripDto, @Request() req) {
     console.log('req.user', req.user);
-    return this.tripsService.create(createTripDto, req.user.id);
+    return this.tripsService.create(createTripDto, req.user.userId);
   }
 
   @Get()

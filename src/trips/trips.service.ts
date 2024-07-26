@@ -10,6 +10,8 @@ import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { Trip, TripStatus } from './entities/trip.entity';
 import { User } from '../users/entities/user.entity';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/notifications/dto/create-notification.dto';
 
 @Injectable()
 export class TripsService {
@@ -18,6 +20,7 @@ export class TripsService {
     private tripsRepository: Repository<Trip>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(createTripDto: CreateTripDto, driverId: number): Promise<Trip> {
@@ -34,7 +37,16 @@ export class TripsService {
       status: TripStatus.PENDING,
     });
 
-    return this.tripsRepository.save(trip);
+    const savedTrip = await this.tripsRepository.save(trip);
+
+    await this.notificationsService.create({
+      userId: driverId,
+      type: NotificationType.TRIP_CREATED,
+      content: `Your trip from ${trip.departureLocation} to ${trip.arrivalLocation} has been created successfully.`,
+      relatedEntityId: savedTrip.id,
+    });
+
+    return savedTrip;
   }
 
   async findAll(status?: TripStatus): Promise<Trip[]> {
@@ -107,9 +119,25 @@ export class TripsService {
       throw new BadRequestException('Only pending trips can be updated');
     }
     Object.assign(trip, updateTripDto);
-    return this.tripsRepository.save(trip);
-  }
+    const updatedTrip = await this.tripsRepository.save(trip);
 
+    await this.notificationsService.create({
+      userId: trip.driver.id,
+      type: NotificationType.TRIP_UPDATE,
+      content: `Your trip to ${trip.arrivalLocation} has been updated.`,
+      relatedEntityId: trip.id,
+    });
+
+    for (const passenger of trip.passengers) {
+      await this.notificationsService.create({
+        userId: passenger.id,
+        type: NotificationType.TRIP_UPDATE,
+        content: `The trip to ${trip.arrivalLocation} has been updated. Please check the new details.`,
+        relatedEntityId: trip.id,
+      });
+    }
+    return updatedTrip;
+  }
   async remove(id: number, userId: number): Promise<void> {
     const trip = await this.findOne(id);
     if (trip.driver.id !== userId) {
@@ -153,7 +181,23 @@ export class TripsService {
       trip.status = TripStatus.FULL;
     }
 
-    return this.tripsRepository.save(trip);
+    const updatedTrip = await this.tripsRepository.save(trip);
+
+    await this.notificationsService.create({
+      content: `You have joined the trip from ${trip.departureLocation} to ${trip.arrivalLocation}`,
+      userId: passengerId,
+      type: NotificationType.TRIP_JOINED,
+      relatedEntityId: trip.id,
+    });
+
+    await this.notificationsService.create({
+      content: `A new passenger has joined your trip to ${trip.arrivalLocation}`,
+      userId: trip.driver.id,
+      type: NotificationType.PASSENGER_JOINED,
+      relatedEntityId: trip.id,
+    });
+
+    return updatedTrip;
   }
 
   async leaveTrip(id: number, passengerId: number): Promise<Trip> {
@@ -218,6 +262,49 @@ export class TripsService {
     }
 
     trip.status = newStatus;
-    return this.tripsRepository.save(trip);
+    const updatedTrip = await this.tripsRepository.save(trip);
+
+    const notificationContent =
+      this.getStatusUpdateNotificationContent(newStatus);
+
+    await this.notificationsService.create({
+      content: notificationContent,
+      userId: trip.driver.id,
+      type: NotificationType.TRIP_STATUS_UPDATE,
+      relatedEntityId: updatedTrip.id,
+    });
+    for (const passenger of trip.passengers) {
+      await this.notificationsService.create({
+        content: notificationContent,
+        userId: passenger.id,
+        type: NotificationType.TRIP_STATUS_UPDATE,
+        relatedEntityId: trip.id,
+      });
+    }
+
+    return updatedTrip;
+  }
+
+  async isUserPassenger(userId: number, tripId: number): Promise<boolean> {
+    const trip = await this.findOne(tripId);
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+    return trip.passengers.some((p) => p.id === userId);
+  }
+
+  private getStatusUpdateNotificationContent(status: TripStatus): string {
+    switch (status) {
+      case TripStatus.CONFIRMED:
+        return 'The trip has been confirmed';
+      case TripStatus.CANCELLED:
+        return 'The trip has been cancelled';
+      case TripStatus.IN_PROGRESS:
+        return 'The trip is now in progress';
+      case TripStatus.COMPLETED:
+        return 'The trip has been completed';
+      default:
+        return `Trip status has been updated to ${status}`;
+    }
   }
 }

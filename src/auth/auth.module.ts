@@ -11,6 +11,7 @@ import { EmailModule } from '../email/email.module';
 import { PassportModule } from '@nestjs/passport';
 import { RolesModule } from 'src/roles/roles.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { WsJwtGuard } from './guards/ws-jwt.guard';
 
 @Module({
   imports: [
@@ -28,8 +29,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, WsJwtGuard],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, WsJwtGuard],
 })
 export class AuthModule {}

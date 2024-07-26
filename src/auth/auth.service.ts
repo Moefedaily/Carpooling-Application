@@ -26,7 +26,6 @@ export class AuthService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Role)
-    private roleRepository: Repository<Role>,
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
@@ -167,6 +166,21 @@ export class AuthService {
         throw new UnauthorizedException('Token has expired');
       }
       throw error;
+    }
+  }
+
+  async validateToken(token: string) {
+    this.logger.debug(
+      `Attempting to verify token: ${token.substring(0, 10)}...`,
+    );
+
+    try {
+      const payload = this.jwtService.verify(token);
+      this.logger.debug(`Token verified. Payload: ${JSON.stringify(payload)}`);
+      return payload;
+    } catch (error) {
+      this.logger.error(`Token verification failed: ${error.message}`);
+      throw new UnauthorizedException('Invalid token');
     }
   }
 }

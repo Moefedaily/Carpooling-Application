@@ -1,12 +1,17 @@
+import { Message } from 'src/messages/entities/message.entity';
+import { Notification } from 'src/notifications/entities/notification.entity';
 import { Role } from 'src/roles/entities/role.entity';
 import { Trip } from 'src/trips/entities/trip.entity';
+
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   ManyToMany,
+  OneToMany,
 } from 'typeorm';
+
 export enum UserRole {
   ADMIN = 'ADMIN',
   DRIVER = 'DRIVER',
@@ -48,4 +53,13 @@ export class User {
 
   @ManyToMany(() => Trip)
   trips: Trip[];
+
+  @OneToMany(() => Message, (message) => message.sender)
+  sentMessages: Message[];
+
+  @OneToMany(() => Message, (message) => message.receiver)
+  receivedMessages: Message[];
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
 }

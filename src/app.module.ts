@@ -8,6 +8,9 @@ import { DatabaseModule } from './database/database.module';
 import { TripsModule } from './trips/trips.module';
 import { RolesModule } from './roles/roles.module';
 import { EmailModule } from './email/email.module';
+import { MessagesModule } from './messages/messages.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -20,6 +23,9 @@ import { EmailModule } from './email/email.module';
     TripsModule,
     RolesModule,
     EmailModule,
+    MessagesModule,
+    NotificationsModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],
