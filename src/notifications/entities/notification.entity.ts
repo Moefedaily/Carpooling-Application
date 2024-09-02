@@ -25,8 +25,8 @@ export class Notification {
   isRead: boolean;
 
   @Column()
-  type: string; // e.g., 'NEW MESSAGE', 'TRIP UPDATE', 'BOOKING CONFIRMATION'
+  type: string; //  'NEW MESSAGE', 'TRIP UPDATE', 'BOOKING CONFIRMATION'
 
   @Column({ nullable: true })
-  relatedEntityId: number; // e.g., tripId or messageId
+  relatedEntityId: number; // tripId or messageId
 }

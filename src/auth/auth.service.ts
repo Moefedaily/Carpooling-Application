@@ -12,7 +12,6 @@ import { JsonWebTokenError, JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { User } from '../users/entities/user.entity';
-import { Role } from '../roles/entities/role.entity';
 import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
 import { RegisterUserDto } from './dto/register-user.dto';
@@ -25,7 +24,6 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(Role)
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
@@ -106,6 +104,7 @@ export class AuthService {
   }
   async requestPasswordReset(email: string) {
     const user = await this.usersService.findByEmail(email);
+    this.logger.debug(`requestPasswordReset: ${JSON.stringify(user)}`);
     if (!user) {
       throw new NotFoundException(
         'If a user with this email exists, a password reset link will be sent.',
@@ -145,6 +144,7 @@ export class AuthService {
   async confirmEmail(token: string): Promise<void> {
     try {
       const payload = this.jwtService.verify(token);
+      this.logger.debug(`confirmEmail payload: ${JSON.stringify(payload)}`);
       const user = await this.usersService.findByEmail(payload.email);
 
       if (!user) {
