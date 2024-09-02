@@ -12,6 +12,11 @@ import { Trip, TripStatus } from './entities/trip.entity';
 import { User } from '../users/entities/user.entity';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NotificationType } from 'src/notifications/dto/create-notification.dto';
+import { ReservationService } from 'src/reservation/reservation.service';
+import {
+  Reservation,
+  ReservationStatus,
+} from 'src/reservation/entities/reservation.entity';
 
 @Injectable()
 export class TripsService {
@@ -20,6 +25,7 @@ export class TripsService {
     private tripsRepository: Repository<Trip>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private reservationsService: ReservationService,
     private notificationsService: NotificationsService,
   ) {}
 
@@ -149,7 +155,11 @@ export class TripsService {
     await this.tripsRepository.remove(trip);
   }
 
-  async joinTrip(id: number, passengerId: number): Promise<Trip> {
+  async joinTrip(
+    id: number,
+    passengerId: number,
+    numberOfSeats: number,
+  ): Promise<{ trip: Trip; reservation: Reservation }> {
     const trip = await this.findOne(id);
     const passenger = await this.usersRepository.findOne({
       where: { id: passengerId },
@@ -166,38 +176,57 @@ export class TripsService {
       throw new BadRequestException('Can only join pending or confirmed trips');
     }
 
-    if (trip.availableSeats <= 0) {
-      throw new BadRequestException('No available seats');
+    if (trip.availableSeats < numberOfSeats) {
+      throw new BadRequestException(
+        `Not enough seats available. Only ${trip.availableSeats} seats left.`,
+      );
     }
+    const totalAmount = trip.pricePerSeat * numberOfSeats;
 
-    if (trip.passengers.some((p) => p.id === passengerId)) {
-      throw new BadRequestException('Passenger already joined this trip');
+    const existingReservation =
+      await this.reservationsService.findByTripAndPassengerId(
+        trip.id,
+        passengerId,
+      );
+    if (existingReservation) {
+      throw new BadRequestException(
+        'Passenger already has a reservation for this trip',
+      );
     }
+    const reservation = await this.reservationsService.create({
+      numberOfSeats,
+      status: ReservationStatus.CONFIRMED,
+      totalAmount,
+      tripId: trip.id,
+      passengerId: passenger.id,
+    });
 
-    trip.passengers.push(passenger);
-    trip.availableSeats--;
-
+    trip.availableSeats -= numberOfSeats;
     if (trip.availableSeats === 0) {
       trip.status = TripStatus.FULL;
+    }
+
+    if (!trip.passengers.some((p) => p.id === passengerId)) {
+      trip.passengers.push(passenger);
     }
 
     const updatedTrip = await this.tripsRepository.save(trip);
 
     await this.notificationsService.create({
-      content: `You have joined the trip from ${trip.departureLocation} to ${trip.arrivalLocation}`,
+      content: `You have joined the trip from ${trip.departureLocation} to ${trip.arrivalLocation} with ${numberOfSeats} seat(s)`,
       userId: passengerId,
       type: NotificationType.TRIP_JOINED,
       relatedEntityId: trip.id,
     });
 
     await this.notificationsService.create({
-      content: `A new passenger has joined your trip to ${trip.arrivalLocation}`,
+      content: `A new passenger has joined your trip to ${trip.arrivalLocation} with ${numberOfSeats} seat(s)`,
       userId: trip.driver.id,
       type: NotificationType.PASSENGER_JOINED,
       relatedEntityId: trip.id,
     });
 
-    return updatedTrip;
+    return { trip: updatedTrip, reservation };
   }
 
   async leaveTrip(id: number, passengerId: number): Promise<Trip> {

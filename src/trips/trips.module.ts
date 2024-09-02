@@ -5,11 +5,13 @@ import { TripsController } from './trips.controller';
 import { Trip } from './entities/trip.entity';
 import { User } from '../users/entities/user.entity';
 import { NotificationsModule } from 'src/notifications/notifications.module';
+import { ReservationModule } from 'src/reservation/reservation.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Trip, User]),
     forwardRef(() => NotificationsModule),
+    ReservationModule,
   ],
   controllers: [TripsController],
   providers: [TripsService],

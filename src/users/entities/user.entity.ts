@@ -1,5 +1,6 @@
 import { Message } from 'src/messages/entities/message.entity';
 import { Notification } from 'src/notifications/entities/notification.entity';
+import { Reservation } from 'src/reservation/entities/reservation.entity';
 import { Role } from 'src/roles/entities/role.entity';
 import { Trip } from 'src/trips/entities/trip.entity';
 
@@ -62,4 +63,7 @@ export class User {
 
   @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Notification[];
+
+  @OneToMany(() => Reservation, (reservation) => reservation.passengerId)
+  reservations: Reservation[];
 }

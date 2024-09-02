@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Message } from 'src/messages/entities/message.entity';
+import { Reservation } from 'src/reservation/entities/reservation.entity';
 
 export enum TripStatus {
   PENDING = 'PENDING',
@@ -61,4 +62,7 @@ export class Trip {
 
   @OneToMany(() => Message, (message) => message.trip)
   messages: Message[];
+
+  @OneToMany(() => Reservation, (reservation) => reservation.tripId)
+  reservations: Reservation[];
 }

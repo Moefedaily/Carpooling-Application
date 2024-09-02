@@ -69,8 +69,12 @@ export class TripsController {
   }
 
   @Post(':id/join')
-  joinTrip(@Param('id') id: string, @Request() req) {
-    return this.tripsService.joinTrip(+id, req.user.userId);
+  joinTrip(
+    @Param('id') id: string,
+    @Request() req,
+    @Body('numberOfSeats') numberOfSeats: number,
+  ) {
+    return this.tripsService.joinTrip(+id, req.user.userId, numberOfSeats);
   }
 
   @Post(':id/leave')

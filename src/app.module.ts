@@ -11,6 +11,7 @@ import { EmailModule } from './email/email.module';
 import { MessagesModule } from './messages/messages.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WebsocketModule } from './websocket/websocket.module';
+import { ReservationModule } from './reservation/reservation.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { WebsocketModule } from './websocket/websocket.module';
     MessagesModule,
     NotificationsModule,
     WebsocketModule,
+    ReservationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
