@@ -231,7 +231,7 @@ export class TripsService {
 
   async leaveTrip(id: number, passengerId: number): Promise<Trip> {
     const trip = await this.findOne(id);
-    console.log('trip', trip);
+    console.log('Trip:', trip);
 
     if (
       trip.status !== TripStatus.PENDING &&
@@ -243,26 +243,49 @@ export class TripsService {
       );
     }
 
-    const passengerIndex = trip.passengers.findIndex((p) => {
-      console.log('Passenger ID:', p.id);
-      console.log('Passenger ID (passed):', passengerId);
-      return p.id === passengerId;
-    });
-
-    if (passengerIndex === -1) {
-      throw new BadRequestException('Passenger is not part of this trip');
+    // Find the reservation
+    const reservation = await this.reservationsService.findByTripAndPassengerId(
+      id,
+      passengerId,
+    );
+    if (!reservation) {
+      throw new BadRequestException(
+        'Passenger does not have a reservation for this trip',
+      );
     }
 
-    trip.passengers.splice(passengerIndex, 1);
-    trip.availableSeats++;
+    // Remove the reservation
+    await this.reservationsService.remove(reservation.id);
 
+    // Update trip details
+    trip.availableSeats += reservation.numberOfSeats;
     if (trip.status === TripStatus.FULL) {
       trip.status = TripStatus.CONFIRMED;
     }
 
-    return this.tripsRepository.save(trip);
-  }
+    // Remove passenger from the trip's passengers array
+    trip.passengers = trip.passengers.filter((p) => p.id !== passengerId);
 
+    // Save updated trip
+    const updatedTrip = await this.tripsRepository.save(trip);
+
+    // Create notifications
+    await this.notificationsService.create({
+      content: `You have left the trip from ${trip.departureLocation} to ${trip.arrivalLocation}`,
+      userId: passengerId,
+      type: NotificationType.TRIP_LEFT,
+      relatedEntityId: trip.id,
+    });
+
+    await this.notificationsService.create({
+      content: `A passenger has left your trip to ${trip.arrivalLocation}`,
+      userId: trip.driver.id,
+      type: NotificationType.PASSENGER_LEFT,
+      relatedEntityId: trip.id,
+    });
+
+    return updatedTrip;
+  }
   async updateTripStatus(
     id: number,
     newStatus: TripStatus,
