@@ -10,13 +10,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JsonWebTokenError, JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
 import { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RolesService } from 'src/roles/roles.service';
+import * as argon from 'argon2';
 
 @Injectable()
 export class AuthService {
@@ -40,7 +40,7 @@ export class AuthService {
       if (existingUser) {
         throw new ConflictException('Email already exists');
       }
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await argon.hash(password);
       let role;
       if (roleId) {
         role = await this.rolesService.findOne(roleId);
@@ -78,7 +78,7 @@ export class AuthService {
   async validateUser(loginUserDto: LoginUserDto): Promise<any> {
     const { email, password } = loginUserDto;
     const user = await this.userRepository.findOne({ where: { email } });
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (user && (await argon.verify(user.password, password))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return result;
@@ -127,7 +127,7 @@ export class AuthService {
       if (!user) {
         throw new NotFoundException('User not found');
       }
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const hashedPassword = await argon.hash(newPassword);
       await this.usersService.updatePassword(user.id, hashedPassword);
       await this.emailService.sendPasswordChangeConfirmation(user);
       return { message: 'Password reset successfully' };

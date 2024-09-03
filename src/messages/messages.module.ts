@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MessagesService } from './messages.service';
 import { MessagesController } from './messages.controller';
@@ -12,9 +12,9 @@ import { WebsocketModule } from 'src/websocket/websocket.module';
   imports: [
     TypeOrmModule.forFeature([Message]),
     UsersModule,
-    forwardRef(() => TripsModule),
-    forwardRef(() => NotificationsModule),
-    forwardRef(() => WebsocketModule),
+    TripsModule,
+    NotificationsModule,
+    WebsocketModule,
   ],
   controllers: [MessagesController],
   providers: [MessagesService],

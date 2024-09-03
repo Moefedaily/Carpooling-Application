@@ -1,9 +1,7 @@
 import {
   BadRequestException,
-  Inject,
   Injectable,
   NotFoundException,
-  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -21,11 +19,8 @@ export class MessagesService {
     @InjectRepository(Message)
     private messagesRepository: Repository<Message>,
     private usersService: UsersService,
-    @Inject(forwardRef(() => TripsService))
     private tripsService: TripsService,
-    @Inject(forwardRef(() => NotificationsService))
     private notificationsService: NotificationsService,
-    @Inject(forwardRef(() => WebsocketGateway))
     private websocketGateway: WebsocketGateway,
   ) {}
 

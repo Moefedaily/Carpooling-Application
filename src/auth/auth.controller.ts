@@ -80,7 +80,7 @@ export class AuthController {
   }
 
   @Get('confirm-email')
-  async confirmEmail(@Query('Authorization') token: string) {
+  async confirmEmail(@Query('token') token: string) {
     try {
       await this.authService.confirmEmail(token);
       return { message: 'Email confirmed successfully' };
