@@ -63,6 +63,6 @@ export class Trip {
   @OneToMany(() => Message, (message) => message.trip)
   messages: Message[];
 
-  @OneToMany(() => Reservation, (reservation) => reservation.tripId)
+  @OneToMany(() => Reservation, (reservation) => reservation.trip)
   reservations: Reservation[];
 }

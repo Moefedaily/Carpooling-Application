@@ -1,3 +1,4 @@
+import { License } from 'src/license/entities/license.entity';
 import { Message } from 'src/messages/entities/message.entity';
 import { Notification } from 'src/notifications/entities/notification.entity';
 import { Reservation } from 'src/reservation/entities/reservation.entity';
@@ -11,6 +12,7 @@ import {
   ManyToOne,
   ManyToMany,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 
 export enum UserRole {
@@ -64,6 +66,9 @@ export class User {
   @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Notification[];
 
-  @OneToMany(() => Reservation, (reservation) => reservation.passengerId)
+  @OneToMany(() => Reservation, (reservation) => reservation.passenger)
   reservations: Reservation[];
+
+  @OneToOne(() => License, (license) => license.user)
+  license: License;
 }

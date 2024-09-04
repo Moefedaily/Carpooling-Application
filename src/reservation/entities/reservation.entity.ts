@@ -39,12 +39,6 @@ export class Reservation {
   @ManyToOne(() => Trip, (trip) => trip.reservations)
   trip: Trip;
 
-  @Column()
-  tripId: number;
-
   @ManyToOne(() => User, (user) => user.reservations)
   passenger: User;
-
-  @Column()
-  passengerId: number;
 }

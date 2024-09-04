@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -20,6 +21,8 @@ import {
 
 @Injectable()
 export class TripsService {
+  private logger = new Logger('TripsService');
+
   constructor(
     @InjectRepository(Trip)
     private tripsRepository: Repository<Trip>,
@@ -165,6 +168,7 @@ export class TripsService {
       where: { id: passengerId },
     });
 
+    this.logger.debug(`Joining trip ${trip.id} for passenger ${passengerId}`);
     if (!passenger) {
       throw new NotFoundException('Passenger not found');
     }
@@ -242,34 +246,31 @@ export class TripsService {
         'Can only leave pending, confirmed, or full trips',
       );
     }
+    this.logger.debug('passengerId trip service:', passengerId);
+    this.logger.debug('Id trip service:', id);
 
-    // Find the reservation
     const reservation = await this.reservationsService.findByTripAndPassengerId(
       id,
       passengerId,
     );
+    this.logger.debug('Reservation trip service:', reservation);
     if (!reservation) {
       throw new BadRequestException(
         'Passenger does not have a reservation for this trip',
       );
     }
 
-    // Remove the reservation
     await this.reservationsService.remove(reservation.id);
 
-    // Update trip details
     trip.availableSeats += reservation.numberOfSeats;
     if (trip.status === TripStatus.FULL) {
       trip.status = TripStatus.CONFIRMED;
     }
 
-    // Remove passenger from the trip's passengers array
     trip.passengers = trip.passengers.filter((p) => p.id !== passengerId);
 
-    // Save updated trip
     const updatedTrip = await this.tripsRepository.save(trip);
 
-    // Create notifications
     await this.notificationsService.create({
       content: `You have left the trip from ${trip.departureLocation} to ${trip.arrivalLocation}`,
       userId: passengerId,
