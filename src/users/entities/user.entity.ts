@@ -1,3 +1,4 @@
+import { Car } from 'src/cars/entities/car.entity';
 import { License } from 'src/license/entities/license.entity';
 import { Message } from 'src/messages/entities/message.entity';
 import { Notification } from 'src/notifications/entities/notification.entity';
@@ -71,4 +72,7 @@ export class User {
 
   @OneToOne(() => License, (license) => license.driver)
   license: License;
+
+  @OneToMany(() => Car, (car) => car.driver)
+  cars: Car[];
 }

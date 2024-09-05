@@ -13,6 +13,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { LicenseModule } from './license/license.module';
+import { CarsModule } from './cars/cars.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { LicenseModule } from './license/license.module';
     WebsocketModule,
     ReservationModule,
     LicenseModule,
+    CarsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

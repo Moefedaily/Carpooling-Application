@@ -6,10 +6,11 @@ import { Trip } from './entities/trip.entity';
 import { User } from '../users/entities/user.entity';
 import { NotificationsModule } from 'src/notifications/notifications.module';
 import { ReservationModule } from 'src/reservation/reservation.module';
+import { Car } from 'src/cars/entities/car.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Trip, User]),
+    TypeOrmModule.forFeature([Trip, User, Car]),
     NotificationsModule,
     ReservationModule,
   ],

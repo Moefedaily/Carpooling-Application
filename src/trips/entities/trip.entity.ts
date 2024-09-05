@@ -10,6 +10,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Message } from 'src/messages/entities/message.entity';
 import { Reservation } from 'src/reservation/entities/reservation.entity';
+import { Car } from 'src/cars/entities/car.entity';
 
 export enum TripStatus {
   PENDING = 'PENDING',
@@ -65,4 +66,7 @@ export class Trip {
 
   @OneToMany(() => Reservation, (reservation) => reservation.trip)
   reservations: Reservation[];
+
+  @ManyToOne(() => Car, (car) => car.trips)
+  car: Car;
 }

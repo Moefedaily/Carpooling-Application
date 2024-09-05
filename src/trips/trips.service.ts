@@ -18,6 +18,7 @@ import {
   Reservation,
   ReservationStatus,
 } from 'src/reservation/entities/reservation.entity';
+import { Car } from 'src/cars/entities/car.entity';
 
 @Injectable()
 export class TripsService {
@@ -28,22 +29,39 @@ export class TripsService {
     private tripsRepository: Repository<Trip>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Car)
+    private carRepository: Repository<Car>,
     private reservationsService: ReservationService,
     private notificationsService: NotificationsService,
   ) {}
 
   async create(createTripDto: CreateTripDto, driverId: number): Promise<Trip> {
+    const { carId, availableSeats, ...tripData } = createTripDto;
+
+    const car = await this.carRepository.findOne({
+      where: { id: carId, driver: { id: driverId } },
+    });
+    if (!car) {
+      throw new NotFoundException(
+        'Car not found or does not belong to the user',
+      );
+    }
+
+    if (availableSeats > car.numberOfSeats) {
+      throw new BadRequestException(
+        `Available seats cannot exceed car capacity of ${car.numberOfSeats}`,
+      );
+    }
+
     const driver = await this.usersRepository.findOne({
       where: { id: driverId },
     });
-    if (!driver) {
-      throw new NotFoundException('Driver not found');
-    }
 
     const trip = this.tripsRepository.create({
-      ...createTripDto,
+      ...tripData,
+      car,
       driver,
-      status: TripStatus.PENDING,
+      availableSeats,
     });
 
     const savedTrip = await this.tripsRepository.save(trip);
@@ -163,7 +181,13 @@ export class TripsService {
     passengerId: number,
     numberOfSeats: number,
   ): Promise<{ trip: Trip; reservation: Reservation }> {
-    const trip = await this.findOne(id);
+    const trip = await this.tripsRepository.findOne({
+      where: { id },
+      relations: ['driver', 'car', 'passengers'],
+    });
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
     const passenger = await this.usersRepository.findOne({
       where: { id: passengerId },
     });
