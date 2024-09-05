@@ -1,9 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { LicenseService } from './license.service';
 import { CreateLicenseDto } from './dto/create-license.dto';
 import { UpdateLicenseDto } from './dto/update-license.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
-@Controller('license')
+@Controller('licenses')
+@UseGuards(JwtAuthGuard)
 export class LicenseController {
   constructor(private readonly licenseService: LicenseService) {}
 
@@ -12,14 +23,14 @@ export class LicenseController {
     return this.licenseService.create(createLicenseDto);
   }
 
-  @Get()
-  findAll() {
-    return this.licenseService.findAll();
-  }
-
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.licenseService.findOne(+id);
+  }
+
+  @Get('driver/:driverId')
+  findByDriver(@Param('driverId') driverId: string) {
+    return this.licenseService.findByDriver(+driverId);
   }
 
   @Patch(':id')
@@ -30,5 +41,10 @@ export class LicenseController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.licenseService.remove(+id);
+  }
+
+  @Patch(':id/verify')
+  verifyLicense(@Param('id') id: string) {
+    return this.licenseService.verifyLicense(+id);
   }
 }

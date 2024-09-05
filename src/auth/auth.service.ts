@@ -17,6 +17,8 @@ import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RolesService } from 'src/roles/roles.service';
 import * as argon from 'argon2';
+import { LicenseService } from 'src/license/license.service';
+import { Role } from 'src/roles/entities/role.entity';
 
 @Injectable()
 export class AuthService {
@@ -29,19 +31,30 @@ export class AuthService {
     private configService: ConfigService,
     private emailService: EmailService,
     private rolesService: RolesService,
+    private licenseService: LicenseService,
   ) {}
 
   async register(registerUserDto: RegisterUserDto): Promise<User> {
+    const {
+      password,
+      email,
+      roleId,
+      licenseNumber,
+      licenseExpirationDate,
+      ...userData
+    } = registerUserDto;
+
+    this.logger.debug(`Registering user: ${JSON.stringify(registerUserDto)}`);
+
     try {
-      const { password, roleId, ...userData } = registerUserDto;
       const existingUser = await this.userRepository.findOne({
-        where: { email: userData.email },
+        where: { email },
       });
       if (existingUser) {
         throw new ConflictException('Email already exists');
       }
-      const hashedPassword = await argon.hash(password);
-      let role;
+
+      let role: Role;
       if (roleId) {
         role = await this.rolesService.findOne(roleId);
         if (!role) {
@@ -51,21 +64,58 @@ export class AuthService {
         role = await this.rolesService.findByName('passenger');
       }
 
+      if (role.name === 'driver') {
+        if (!licenseNumber || !licenseExpirationDate) {
+          throw new BadRequestException(
+            'License information is required for drivers',
+          );
+        }
+        const existingLicense =
+          await this.licenseService.findByLicenseNumber(licenseNumber);
+        if (existingLicense) {
+          throw new ConflictException('License number already exists');
+        }
+      }
+
+      const hashedPassword = await argon.hash(password);
       const user = this.userRepository.create({
         ...userData,
+        email,
         password: hashedPassword,
         isEmailConfirmed: false,
         role: role,
       });
+
       const savedUser = await this.userRepository.save(user);
+      this.logger.debug(`User created: ${JSON.stringify(savedUser)}`);
+
+      if (role.name === 'driver') {
+        try {
+          await this.licenseService.create({
+            licenseNumber,
+            expirationDate: licenseExpirationDate,
+            driverId: savedUser.id,
+          });
+          this.logger.debug(`License created for user: ${savedUser.id}`);
+        } catch (error) {
+          await this.userRepository.remove(savedUser);
+          throw new Error(`Failed to create license: ${error.message}`);
+        }
+      }
+
       const token = this.jwtService.sign({ email: user.email, sub: user.id });
       await this.emailService.sendUserRegistration(savedUser, token);
+
       return savedUser;
     } catch (error) {
-      this.logger.error(
-        `Registration failed for email ${registerUserDto.email}`,
-        error.stack,
-      );
+      this.logger.error(`Registration failed: ${error.message}`, error.stack);
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
       if (error.message === 'Failed to send registration email') {
         throw new Error(
           'Registration successful but failed to send confirmation email. Please contact support.',
@@ -74,7 +124,6 @@ export class AuthService {
       throw new Error('Registration failed. Please try again later.');
     }
   }
-
   async validateUser(loginUserDto: LoginUserDto): Promise<any> {
     const { email, password } = loginUserDto;
     const user = await this.userRepository.findOne({ where: { email } });

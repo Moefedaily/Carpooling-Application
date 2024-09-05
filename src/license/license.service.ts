@@ -1,26 +1,109 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateLicenseDto } from './dto/create-license.dto';
 import { UpdateLicenseDto } from './dto/update-license.dto';
+import { License } from './entities/license.entity';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class LicenseService {
-  create(createLicenseDto: CreateLicenseDto) {
-    return 'This action adds a new license';
+  private logger = new Logger(LicenseService.name);
+  constructor(
+    @InjectRepository(License)
+    private licenseRepository: Repository<License>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) {}
+
+  async findByLicenseNumber(licenseNumber: string): Promise<License> {
+    return this.licenseRepository.findOne({ where: { licenseNumber } });
   }
 
-  findAll() {
-    return `This action returns all license`;
+  async create(createLicenseDto: CreateLicenseDto): Promise<License> {
+    const { licenseNumber, expirationDate, driverId } = createLicenseDto;
+
+    const driver = await this.userRepository.findOne({
+      where: { id: driverId },
+    });
+    if (!driver) {
+      throw new NotFoundException(`Driver with ID ${driverId} not found`);
+    }
+
+    const license = this.licenseRepository.create({
+      licenseNumber,
+      expirationDate: new Date(expirationDate),
+      driver,
+    });
+
+    return this.licenseRepository.save(license);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} license`;
+  async findOne(id: number): Promise<License> {
+    const license = await this.licenseRepository.findOne({
+      where: { id },
+      relations: ['driver'],
+    });
+    if (!license) {
+      throw new NotFoundException(`License with ID ${id} not found`);
+    }
+    return license;
   }
 
-  update(id: number, updateLicenseDto: UpdateLicenseDto) {
-    return `This action updates a #${id} license`;
+  async findByDriver(driverId: number): Promise<License> {
+    const license = await this.licenseRepository.findOne({
+      where: { driver: { id: driverId } },
+    });
+    if (!license) {
+      throw new NotFoundException(
+        `License for driver with ID ${driverId} not found`,
+      );
+    }
+    return license;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} license`;
+  async update(
+    id: number,
+    updateLicenseDto: UpdateLicenseDto,
+  ): Promise<License> {
+    const license = await this.findOne(id);
+    this.licenseRepository.merge(license, updateLicenseDto);
+    return this.licenseRepository.save(license);
+  }
+
+  async remove(id: number): Promise<void> {
+    const result = await this.licenseRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`License with ID ${id} not found`);
+    }
+  }
+
+  async verifyLicense(id: number): Promise<License> {
+    const license = await this.findOne(id);
+    license.isVerified = true;
+    return this.licenseRepository.save(license);
+  }
+
+  async isValid(id: number): Promise<boolean> {
+    const license = await this.findByDriver(id);
+    const currentDate = new Date();
+    return license.expirationDate > currentDate;
+  }
+
+  async getTimeUntilExpiration(id: number): Promise<number> {
+    const license = await this.findByDriver(id);
+    const expirationDate = new Date(license.expirationDate);
+    const now = new Date();
+    const timeUntilExpiration = expirationDate.getTime() - now.getTime();
+    return timeUntilExpiration;
+  }
+
+  async isExpiringSoon(
+    id: number,
+    daysTilExpir: number = 30,
+  ): Promise<boolean> {
+    const timeUntilExpiration = await this.getTimeUntilExpiration(id);
+    const daysUntilExpiration = timeUntilExpiration / (1000 * 60 * 60 * 24);
+    return daysUntilExpiration <= daysTilExpir;
   }
 }

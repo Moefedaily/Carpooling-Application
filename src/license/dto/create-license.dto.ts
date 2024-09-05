@@ -11,5 +11,5 @@ export class CreateLicenseDto {
 
   @IsNotEmpty()
   @IsNumber()
-  userId: number;
+  driverId: number;
 }

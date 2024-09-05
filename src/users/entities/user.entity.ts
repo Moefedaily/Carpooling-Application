@@ -69,6 +69,6 @@ export class User {
   @OneToMany(() => Reservation, (reservation) => reservation.passenger)
   reservations: Reservation[];
 
-  @OneToOne(() => License, (license) => license.user)
+  @OneToOne(() => License, (license) => license.driver)
   license: License;
 }

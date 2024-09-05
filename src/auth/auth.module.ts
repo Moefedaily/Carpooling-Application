@@ -12,11 +12,13 @@ import { PassportModule } from '@nestjs/passport';
 import { RolesModule } from 'src/roles/roles.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { WsJwtGuard } from './guards/ws-jwt.guard';
+import { LicenseModule } from 'src/license/license.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Role]),
     UsersModule,
+    LicenseModule,
     RolesModule,
     EmailModule,
     PassportModule,

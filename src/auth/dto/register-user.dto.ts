@@ -36,4 +36,12 @@ export class RegisterUserDto {
   @IsNumber()
   @IsOptional()
   roleId?: number;
+
+  @IsOptional()
+  @IsString()
+  licenseNumber?: string;
+
+  @IsOptional()
+  @IsDateString()
+  licenseExpirationDate?: string;
 }
