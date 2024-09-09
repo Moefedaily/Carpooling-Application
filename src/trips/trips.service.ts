@@ -41,13 +41,6 @@ export class TripsService {
   async create(createTripDto: CreateTripDto, driverId: number): Promise<Trip> {
     const { carId, availableSeats, ...tripData } = createTripDto;
 
-    const license = await this.licenseRepository.findOne({
-      where: { driver: { id: driverId } },
-    });
-    if (!license || license.status !== verificationStatus.VERIFIED) {
-      throw new ForbiddenException('Driver does not have a verified license');
-    }
-
     const car = await this.carRepository.findOne({
       where: { id: carId, driver: { id: driverId } },
     });
@@ -56,6 +49,14 @@ export class TripsService {
         'Car not found or does not belong to the driver',
       );
     }
+
+    const license = await this.licenseRepository.findOne({
+      where: { driver: { id: driverId } },
+    });
+    if (!license || license.status !== verificationStatus.VERIFIED) {
+      throw new ForbiddenException('Driver does not have a verified license');
+    }
+
     if (car.status !== verificationStatus.VERIFIED) {
       throw new ForbiddenException('The selected car is not verified');
     }
