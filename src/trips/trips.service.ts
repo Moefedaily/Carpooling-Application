@@ -18,7 +18,8 @@ import {
   Reservation,
   ReservationStatus,
 } from 'src/reservation/entities/reservation.entity';
-import { Car } from 'src/cars/entities/car.entity';
+import { Car, verificationStatus } from 'src/cars/entities/car.entity';
+import { License } from 'src/license/entities/license.entity';
 
 @Injectable()
 export class TripsService {
@@ -31,6 +32,8 @@ export class TripsService {
     private usersRepository: Repository<User>,
     @InjectRepository(Car)
     private carRepository: Repository<Car>,
+    @InjectRepository(License)
+    private licenseRepository: Repository<License>,
     private reservationsService: ReservationService,
     private notificationsService: NotificationsService,
   ) {}
@@ -38,15 +41,24 @@ export class TripsService {
   async create(createTripDto: CreateTripDto, driverId: number): Promise<Trip> {
     const { carId, availableSeats, ...tripData } = createTripDto;
 
+    const license = await this.licenseRepository.findOne({
+      where: { driver: { id: driverId } },
+    });
+    if (!license || license.status !== verificationStatus.VERIFIED) {
+      throw new ForbiddenException('Driver does not have a verified license');
+    }
+
     const car = await this.carRepository.findOne({
       where: { id: carId, driver: { id: driverId } },
     });
     if (!car) {
       throw new NotFoundException(
-        'Car not found or does not belong to the user',
+        'Car not found or does not belong to the driver',
       );
     }
-
+    if (car.status !== verificationStatus.VERIFIED) {
+      throw new ForbiddenException('The selected car is not verified');
+    }
     if (availableSeats > car.numberOfSeats) {
       throw new BadRequestException(
         `Available seats cannot exceed car capacity of ${car.numberOfSeats}`,
@@ -75,7 +87,6 @@ export class TripsService {
 
     return savedTrip;
   }
-
   async findAll(status?: TripStatus): Promise<Trip[]> {
     const query = this.tripsRepository
       .createQueryBuilder('trip')

@@ -1,10 +1,16 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateLicenseDto } from './dto/create-license.dto';
 import { UpdateLicenseDto } from './dto/update-license.dto';
-import { License } from './entities/license.entity';
+import { License, verificationStatus } from './entities/license.entity';
 import { User } from 'src/users/entities/user.entity';
+import { Car } from 'src/cars/entities/car.entity';
 
 @Injectable()
 export class LicenseService {
@@ -14,6 +20,8 @@ export class LicenseService {
     private licenseRepository: Repository<License>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Car)
+    private carRepository: Repository<Car>,
   ) {}
 
   async findByLicenseNumber(licenseNumber: string): Promise<License> {
@@ -79,9 +87,31 @@ export class LicenseService {
   }
 
   async verifyLicense(id: number): Promise<License> {
-    const license = await this.findOne(id);
-    license.isVerified = true;
-    return this.licenseRepository.save(license);
+    const license = await this.licenseRepository.findOne({
+      where: { id },
+      relations: ['driver'],
+    });
+
+    if (!license) {
+      throw new NotFoundException('License not found');
+    }
+
+    if (license.status === verificationStatus.VERIFIED) {
+      throw new ForbiddenException('License is already verified');
+    }
+
+    license.status = verificationStatus.VERIFIED;
+    const updatedLicense = await this.licenseRepository.save(license);
+
+    await this.carRepository.update(
+      {
+        driver: { id: license.driver.id },
+        status: verificationStatus.PENDING,
+      },
+      { status: verificationStatus.VERIFIED },
+    );
+
+    return updatedLicense;
   }
 
   async isValid(id: number): Promise<boolean> {

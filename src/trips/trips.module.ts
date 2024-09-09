@@ -7,10 +7,11 @@ import { User } from '../users/entities/user.entity';
 import { NotificationsModule } from 'src/notifications/notifications.module';
 import { ReservationModule } from 'src/reservation/reservation.module';
 import { Car } from 'src/cars/entities/car.entity';
+import { License } from 'src/license/entities/license.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Trip, User, Car]),
+    TypeOrmModule.forFeature([Trip, User, Car, License]),
     NotificationsModule,
     ReservationModule,
   ],

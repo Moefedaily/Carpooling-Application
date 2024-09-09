@@ -7,6 +7,13 @@ import {
   ManyToOne,
   OneToMany,
 } from 'typeorm';
+
+export enum verificationStatus {
+  PENDING = 'PENDING',
+  VERIFIED = 'VERIFIED',
+  REJECTED = 'REJECTED',
+  SUSPENDED = 'SUSPENDED',
+}
 @Entity()
 export class Car {
   @PrimaryGeneratedColumn()
@@ -29,6 +36,13 @@ export class Car {
 
   @Column()
   numberOfSeats: number;
+
+  @Column({
+    type: 'enum',
+    enum: verificationStatus,
+    default: verificationStatus.PENDING,
+  })
+  status: verificationStatus;
 
   @ManyToOne(() => User, (user) => user.cars)
   driver: User;

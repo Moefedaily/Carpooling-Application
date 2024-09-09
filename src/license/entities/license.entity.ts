@@ -6,6 +6,12 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
+export enum verificationStatus {
+  PENDING = 'PENDING',
+  VERIFIED = 'VERIFIED',
+  REJECTED = 'REJECTED',
+  SUSPENDED = 'SUSPENDED',
+}
 @Entity()
 export class License {
   @PrimaryGeneratedColumn()
@@ -21,6 +27,10 @@ export class License {
   @JoinColumn()
   driver: User;
 
-  @Column({ default: false })
-  isVerified: boolean;
+  @Column({
+    type: 'enum',
+    enum: verificationStatus,
+    default: verificationStatus.PENDING,
+  })
+  status: verificationStatus;
 }
