@@ -6,6 +6,8 @@ import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { Trip } from 'src/trips/entities/trip.entity';
 import { User } from 'src/users/entities/user.entity';
+import { PaymentService } from 'src/payment/payment.service';
+import { PaymentStatus } from 'src/payment/entities/payment.entity';
 
 @Injectable()
 export class ReservationService {
@@ -16,6 +18,7 @@ export class ReservationService {
     private tripRepository: Repository<Trip>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private paymentService: PaymentService,
   ) {}
 
   async create(
@@ -41,7 +44,17 @@ export class ReservationService {
       passenger,
     });
 
-    return this.reservationRepository.save(reservation);
+    const savedReservation = this.reservationRepository.save(reservation);
+    await this.paymentService.create({
+      amount: (await savedReservation).totalAmount,
+      paymentDate: new Date(),
+      paymentMethod: 'stripe',
+      status: PaymentStatus.PENDING,
+      reservationId: (await savedReservation).id,
+      userId: (await savedReservation).passenger.id,
+    });
+
+    return savedReservation;
   }
 
   async findAll(): Promise<Reservation[]> {

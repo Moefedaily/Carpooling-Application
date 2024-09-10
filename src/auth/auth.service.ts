@@ -19,7 +19,7 @@ import { RolesService } from 'src/roles/roles.service';
 import * as argon from 'argon2';
 import { LicenseService } from 'src/license/license.service';
 import { Role } from 'src/roles/entities/role.entity';
-
+import { StripeService } from 'src/stripe/stripe.service';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -32,6 +32,7 @@ export class AuthService {
     private emailService: EmailService,
     private rolesService: RolesService,
     private licenseService: LicenseService,
+    private stripeService: StripeService,
   ) {}
 
   async register(registerUserDto: RegisterUserDto): Promise<User> {
@@ -85,6 +86,16 @@ export class AuthService {
         isEmailConfirmed: false,
         role: role,
       });
+
+      try {
+        const stripeCustomer = await this.stripeService.createCustomer(
+          user.email,
+          `${user.firstName} ${user.lastName}`,
+        );
+        user.stripeUserId = stripeCustomer.id;
+      } catch (error) {
+        this.logger.error(`Failed to create Stripe customer: ${error.message}`);
+      }
 
       const savedUser = await this.userRepository.save(user);
       this.logger.debug(`User created: ${JSON.stringify(savedUser)}`);

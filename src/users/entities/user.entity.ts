@@ -75,4 +75,7 @@ export class User {
 
   @OneToMany(() => Car, (car) => car.driver)
   cars: Car[];
+
+  @Column({ nullable: true })
+  stripeUserId: string;
 }

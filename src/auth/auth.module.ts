@@ -13,6 +13,7 @@ import { RolesModule } from 'src/roles/roles.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { WsJwtGuard } from './guards/ws-jwt.guard';
 import { LicenseModule } from 'src/license/license.module';
+import { StripeModule } from 'src/stripe/stripe.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { LicenseModule } from 'src/license/license.module';
     RolesModule,
     EmailModule,
     PassportModule,
+    StripeModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

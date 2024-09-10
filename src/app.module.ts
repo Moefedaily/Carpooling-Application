@@ -14,6 +14,9 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { LicenseModule } from './license/license.module';
 import { CarsModule } from './cars/cars.module';
+import { PaymentModule } from './payment/payment.module';
+import { StripeService } from './stripe/stripe.service';
+import { StripeModule } from './stripe/stripe.module';
 
 @Module({
   imports: [
@@ -32,8 +35,10 @@ import { CarsModule } from './cars/cars.module';
     ReservationModule,
     LicenseModule,
     CarsModule,
+    PaymentModule,
+    StripeModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, StripeService],
 })
 export class AppModule {}
