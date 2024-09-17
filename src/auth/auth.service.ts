@@ -15,11 +15,13 @@ import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { RolesService } from 'src/roles/roles.service';
 import * as argon from 'argon2';
 import { LicenseService } from 'src/license/license.service';
-import { Role } from 'src/roles/entities/role.entity';
 import { StripeService } from 'src/stripe/stripe.service';
+import { CreateLicenseDto } from 'src/license/dto/create-license.dto';
+import { verificationStatus } from 'src/cars/entities/car.entity';
+import { Role } from 'src/roles/entities/role.entity';
+import { RolesService } from 'src/roles/roles.service';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -30,22 +32,14 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private emailService: EmailService,
-    private rolesService: RolesService,
     private licenseService: LicenseService,
     private stripeService: StripeService,
+    private rolesService: RolesService,
   ) {}
 
   async register(registerUserDto: RegisterUserDto): Promise<User> {
-    const {
-      password,
-      email,
-      roleId,
-      licenseNumber,
-      licenseExpirationDate,
-      ...userData
-    } = registerUserDto;
-
-    this.logger.debug(`Registering user: ${JSON.stringify(registerUserDto)}`);
+    const { password, email, isInterestedInDriving, roleId, ...userData } =
+      registerUserDto;
 
     try {
       const existingUser = await this.userRepository.findOne({
@@ -55,6 +49,8 @@ export class AuthService {
         throw new ConflictException('Email already exists');
       }
 
+      const hashedPassword = await argon.hash(password);
+
       let role: Role;
       if (roleId) {
         role = await this.rolesService.findOne(roleId);
@@ -62,28 +58,15 @@ export class AuthService {
           throw new NotFoundException(`Role with ID ${roleId} not found`);
         }
       } else {
-        role = await this.rolesService.findByName('passenger');
+        role = await this.rolesService.findByName('PASSENGER');
       }
 
-      if (role.name === 'driver') {
-        if (!licenseNumber || !licenseExpirationDate) {
-          throw new BadRequestException(
-            'License information is required for drivers',
-          );
-        }
-        const existingLicense =
-          await this.licenseService.findByLicenseNumber(licenseNumber);
-        if (existingLicense) {
-          throw new ConflictException('License number already exists');
-        }
-      }
-
-      const hashedPassword = await argon.hash(password);
       const user = this.userRepository.create({
         ...userData,
         email,
         password: hashedPassword,
         isEmailConfirmed: false,
+        isInterestedInDriving: isInterestedInDriving || false,
         role: role,
       });
 
@@ -98,41 +81,18 @@ export class AuthService {
       }
 
       const savedUser = await this.userRepository.save(user);
-      this.logger.debug(`User created: ${JSON.stringify(savedUser)}`);
 
-      if (role.name === 'driver') {
-        try {
-          await this.licenseService.create({
-            licenseNumber,
-            expirationDate: licenseExpirationDate,
-            driverId: savedUser.id,
-          });
-          this.logger.debug(`License created for user: ${savedUser.id}`);
-        } catch (error) {
-          await this.userRepository.remove(savedUser);
-          throw new Error(`Failed to create license: ${error.message}`);
-        }
-      }
+      const token = this.jwtService.sign({
+        email: user.email,
+        sub: user.id,
+      });
 
-      const token = this.jwtService.sign({ email: user.email, sub: user.id });
       await this.emailService.sendUserRegistration(savedUser, token);
 
       return savedUser;
     } catch (error) {
       this.logger.error(`Registration failed: ${error.message}`, error.stack);
-      if (
-        error instanceof ConflictException ||
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException
-      ) {
-        throw error;
-      }
-      if (error.message === 'Failed to send registration email') {
-        throw new Error(
-          'Registration successful but failed to send confirmation email. Please contact support.',
-        );
-      }
-      throw new Error('Registration failed. Please try again later.');
+      throw error;
     }
   }
   async validateUser(loginUserDto: LoginUserDto): Promise<any> {
@@ -146,6 +106,33 @@ export class AuthService {
     return null;
   }
 
+  async registerAsDriver(
+    userId: number,
+    createLicenseDto: CreateLicenseDto,
+  ): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['role'],
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    this.logger.debug(`User found: ${JSON.stringify(user)}`);
+    await this.licenseService.create({
+      ...createLicenseDto,
+      driverId: user.id,
+    });
+
+    user.isInterestedInDriving = true;
+
+    if (user.role.name === 'PASSENGER') {
+      const bothRole = await this.rolesService.findByName('BOTH');
+      user.role = bothRole;
+    }
+
+    return this.userRepository.save(user);
+  }
   async login(loginUserDto: LoginUserDto): Promise<{ accessToken: string }> {
     const user = await this.validateUser(loginUserDto);
     if (!user) {
@@ -156,7 +143,11 @@ export class AuthService {
         'Please confirm your email before logging in',
       );
     }
-    const payload = { email: user.email, sub: user.id };
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      isVerifiedDriver: user.isVerifiedDriver,
+    };
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_SECRET'),
     });
@@ -242,5 +233,20 @@ export class AuthService {
       this.logger.error(`Token verification failed: ${error.message}`);
       throw new UnauthorizedException('Invalid token');
     }
+  }
+
+  async isVerifiedDriver(userId: number): Promise<boolean> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['license'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    user.isVerifiedDriver = true;
+    return (
+      !!user.license && user.license.status === verificationStatus.VERIFIED
+    );
   }
 }

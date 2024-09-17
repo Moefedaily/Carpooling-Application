@@ -8,6 +8,8 @@ import {
   Get,
   Query,
   Logger,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterUserDto } from './dto/register-user.dto';
@@ -18,8 +20,10 @@ import {
   errorResponse,
 } from '../utils/response.util';
 import { User } from '../users/entities/user.entity';
+import { CreateLicenseDto } from 'src/license/dto/create-license.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
-@Controller('auth')
+@Controller('api/auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
   constructor(private readonly authService: AuthService) {}
@@ -34,6 +38,15 @@ export class AuthController {
     } catch (error) {
       return errorResponse('Registration failed', [error.message]);
     }
+  }
+  @Post('register-as-driver')
+  @UseGuards(JwtAuthGuard)
+  async registerAsDriver(
+    @Body() createLicenseDto: CreateLicenseDto,
+    @Request() req,
+  ) {
+    this.logger.debug(`req: ${JSON.stringify(req.user)}`);
+    return this.authService.registerAsDriver(req.user.userId, createLicenseDto);
   }
 
   @Post('login')

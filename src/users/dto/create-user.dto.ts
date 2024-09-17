@@ -1,6 +1,8 @@
 import {
+  IsBoolean,
   IsDate,
   IsEmail,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
@@ -32,4 +34,8 @@ export class CreateUserDto {
   moyen_paiement: string;
 
   id_role: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isInterestedInDriving?: boolean;
 }

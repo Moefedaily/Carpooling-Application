@@ -9,6 +9,7 @@ import {
   Request,
   Query,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { TripsService } from './trips.service';
 import { CreateTripDto } from './dto/create-trip.dto';
@@ -16,7 +17,7 @@ import { UpdateTripDto } from './dto/update-trip.dto';
 import { TripStatus } from './entities/trip.entity';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
-@Controller('trips')
+@Controller('api/trips')
 @UseGuards(JwtAuthGuard)
 export class TripsController {
   constructor(private readonly tripsService: TripsService) {}
@@ -25,6 +26,25 @@ export class TripsController {
   create(@Body() createTripDto: CreateTripDto, @Request() req) {
     console.log('req.user', req.user);
     return this.tripsService.create(createTripDto, req.user.userId);
+  }
+  @Get('search')
+  async searchTrips(
+    @Query('departureLocation') departureLocation: string,
+    @Query('arrivalLocation') arrivalLocation: string,
+    @Query('departureDate') departureDate: Date,
+    @Query('numberOfPassengers') numberOfPassengers: number,
+  ) {
+    return this.tripsService.searchTrips(
+      departureLocation,
+      arrivalLocation,
+      departureDate,
+      numberOfPassengers,
+    );
+  }
+
+  @Get('popular')
+  async getPopularTrips(@Query('limit', ParseIntPipe) limit: number = 5) {
+    return this.tripsService.getPopularTrips(limit);
   }
 
   @Get()

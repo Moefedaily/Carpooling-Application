@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, MoreThanOrEqual, Repository } from 'typeorm';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { Trip, TripStatus } from './entities/trip.entity';
@@ -18,8 +18,9 @@ import {
   Reservation,
   ReservationStatus,
 } from 'src/reservation/entities/reservation.entity';
-import { Car, verificationStatus } from 'src/cars/entities/car.entity';
+import { Car } from 'src/cars/entities/car.entity';
 import { License } from 'src/license/entities/license.entity';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class TripsService {
@@ -36,6 +37,7 @@ export class TripsService {
     private licenseRepository: Repository<License>,
     private reservationsService: ReservationService,
     private notificationsService: NotificationsService,
+    private authService: AuthService,
   ) {}
 
   async create(createTripDto: CreateTripDto, driverId: number): Promise<Trip> {
@@ -50,15 +52,10 @@ export class TripsService {
       );
     }
 
-    const license = await this.licenseRepository.findOne({
-      where: { driver: { id: driverId } },
-    });
-    if (!license || license.status !== verificationStatus.VERIFIED) {
-      throw new ForbiddenException('Driver does not have a verified license');
-    }
+    const isVerifiedDriver = await this.authService.isVerifiedDriver(driverId);
 
-    if (car.status !== verificationStatus.VERIFIED) {
-      throw new ForbiddenException('The selected car is not verified');
+    if (!isVerifiedDriver) {
+      throw new ForbiddenException('Only verified drivers can create trips');
     }
     if (availableSeats > car.numberOfSeats) {
       throw new BadRequestException(
@@ -395,5 +392,41 @@ export class TripsService {
       default:
         return `Trip status has been updated to ${status}`;
     }
+  }
+  async searchTrips(
+    departureLocation: string,
+    arrivalLocation: string,
+    departureDate: Date,
+    numberOfPassengers: number,
+  ): Promise<Trip[]> {
+    return this.tripsRepository.find({
+      where: {
+        departureLocation,
+        arrivalLocation,
+        departureDate,
+        availableSeats: MoreThanOrEqual(numberOfPassengers),
+        status: In[(TripStatus.PENDING, TripStatus.CONFIRMED)],
+      },
+      relations: ['driver', 'car'],
+    });
+  }
+
+  async getPopularTrips(limit: number = 5): Promise<Trip[]> {
+    const trips = await this.tripsRepository.find({
+      relations: ['reservations', 'driver', 'car'],
+      where: {
+        status: In[(TripStatus.PENDING, TripStatus.CONFIRMED, TripStatus.FULL)],
+      },
+      order: {
+        reservations: {
+          id: 'DESC',
+        },
+      },
+      take: limit,
+    });
+
+    trips.sort((a, b) => b.reservations.length - a.reservations.length);
+
+    return trips;
   }
 }

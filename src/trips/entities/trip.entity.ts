@@ -33,7 +33,7 @@ export class Trip {
   arrivalLocation: string;
 
   @Column()
-  departureDate: string;
+  departureDate: Date;
 
   @Column()
   departureTime: string;

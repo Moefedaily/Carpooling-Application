@@ -78,4 +78,10 @@ export class User {
 
   @Column({ nullable: true })
   stripeUserId: string;
+
+  @Column({ default: false })
+  isInterestedInDriving: boolean;
+
+  @Column({ default: false })
+  isVerifiedDriver: boolean;
 }

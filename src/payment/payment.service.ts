@@ -41,7 +41,7 @@ export class PaymentService {
 
     const paymentIntent = await this.stripeService.createPaymentIntent(
       Math.round(createPaymentDto.amount * 100),
-      'Euro',
+      'usd',
       user.stripeUserId,
     );
 

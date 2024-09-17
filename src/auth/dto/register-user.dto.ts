@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsEmail,
   IsNumber,
@@ -44,4 +45,8 @@ export class RegisterUserDto {
   @IsOptional()
   @IsDateString()
   licenseExpirationDate?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isInterestedInDriving?: boolean;
 }

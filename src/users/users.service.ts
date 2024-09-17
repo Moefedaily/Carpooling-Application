@@ -2,8 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
-import * as bcrypt from 'bcrypt';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as argon from 'argon2';
 
 @Injectable()
 export class UsersService {
@@ -38,12 +38,16 @@ export class UsersService {
     const user = await this.findOne(id);
 
     if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+      updateUserDto.password = await argon.hash(updateUserDto.password);
     }
 
-    const updatedUser = this.userRepository.merge(user, updateUserDto);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
-    return this.userRepository.save(updatedUser);
+    Object.assign(user, updateUserDto);
+
+    return this.userRepository.save(user);
   }
 
   async delete(id: number): Promise<{ affected?: number }> {
