@@ -9,7 +9,7 @@ export class EmailService {
   constructor(private mailerService: MailerService) {}
 
   async sendUserRegistration(user: User, token: string): Promise<void> {
-    const url = `${process.env.APP_URL}/auth/confirm-email?token=${token}`;
+    const url = `${process.env.FRONT_URL}/pages/auth/confirmEmail?token=${token}`;
     try {
       await this.mailerService.sendMail({
         to: user.email,
@@ -51,7 +51,7 @@ export class EmailService {
   }
 
   async sendPasswordReset(user: User, token: string) {
-    const url = `${process.env.APP_URL}/auth/reset-password?token=${token}`;
+    const url = `${process.env.FRONT_URL}/pages/auth/reset-password?token=${token}`;
     try {
       await this.mailerService.sendMail({
         to: user.email,

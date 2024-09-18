@@ -39,7 +39,7 @@ export class CarService {
       throw new BadRequestException('License plate already exists');
     }
 
-    if (user.role.name !== 'driver') {
+    if (user.role.name !== 'BOTH') {
       throw new ForbiddenException('Only drivers can create cars');
     }
 

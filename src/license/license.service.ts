@@ -100,18 +100,32 @@ export class LicenseService {
       throw new ForbiddenException('License is already verified');
     }
 
-    license.status = verificationStatus.VERIFIED;
-    const updatedLicense = await this.licenseRepository.save(license);
+    try {
+      license.status = verificationStatus.VERIFIED;
+      await this.licenseRepository.save(license);
 
-    await this.carRepository.update(
-      {
-        driver: { id: license.driver.id },
-        status: verificationStatus.PENDING,
-      },
-      { status: verificationStatus.VERIFIED },
-    );
+      await this.userRepository.update(license.driver.id, {
+        isVerifiedDriver: true,
+      });
 
-    return updatedLicense;
+      await this.carRepository.update(
+        {
+          driver: { id: license.driver.id },
+          status: verificationStatus.PENDING,
+        },
+        { status: verificationStatus.VERIFIED },
+      );
+    } catch (error) {
+      console.error('Error during license verification:', error);
+      license.status = verificationStatus.PENDING;
+      await this.licenseRepository.save(license);
+      throw new ForbiddenException('Failed to verify license');
+    }
+
+    return this.licenseRepository.findOne({
+      where: { id },
+      relations: ['driver'],
+    });
   }
 
   async isValid(id: number): Promise<boolean> {
