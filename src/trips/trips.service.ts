@@ -232,7 +232,7 @@ export class TripsService {
     }
     const reservation = await this.reservationsService.create({
       numberOfSeats,
-      status: ReservationStatus.CONFIRMED,
+      status: ReservationStatus.PENDING,
       totalAmount,
       tripId: trip.id,
       passengerId: passenger.id,

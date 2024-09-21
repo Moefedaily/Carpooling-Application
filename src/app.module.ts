@@ -17,6 +17,7 @@ import { CarsModule } from './cars/cars.module';
 import { PaymentModule } from './payment/payment.module';
 import { StripeService } from './stripe/stripe.service';
 import { StripeModule } from './stripe/stripe.module';
+import { WebhookModule } from './webhook/webhook.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { StripeModule } from './stripe/stripe.module';
     CarsModule,
     PaymentModule,
     StripeModule,
+    WebhookModule,
   ],
   controllers: [AppController],
   providers: [AppService, StripeService],

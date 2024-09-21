@@ -5,9 +5,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Payment } from './entities/payment.entity';
 import { StripeModule } from 'src/stripe/stripe.module';
 import { User } from 'src/users/entities/user.entity';
+import { Reservation } from 'src/reservation/entities/reservation.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Payment, User]), StripeModule],
+  imports: [
+    TypeOrmModule.forFeature([Payment, User, Reservation]),
+    StripeModule,
+  ],
   controllers: [PaymentController],
   providers: [PaymentService],
   exports: [PaymentService],

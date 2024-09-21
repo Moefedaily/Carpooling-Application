@@ -29,4 +29,9 @@ export class StripeService {
       customer: customerId,
     });
   }
+  async retrievePaymentIntent(
+    paymentIntentId: string,
+  ): Promise<Stripe.PaymentIntent> {
+    return this.stripe.paymentIntents.retrieve(paymentIntentId);
+  }
 }

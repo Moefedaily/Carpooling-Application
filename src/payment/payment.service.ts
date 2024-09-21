@@ -2,10 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment, PaymentStatus } from './entities/payment.entity';
-import { CreatePaymentDto } from './dto/create-payment.dto';
 import { Stripe } from 'stripe';
-import { User } from 'src/users/entities/user.entity';
 import { StripeService } from 'src/stripe/stripe.service';
+import {
+  Reservation,
+  ReservationStatus,
+} from 'src/reservation/entities/reservation.entity';
 
 @Injectable()
 export class PaymentService {
@@ -14,8 +16,8 @@ export class PaymentService {
   constructor(
     @InjectRepository(Payment)
     private paymentRepository: Repository<Payment>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    @InjectRepository(Reservation)
+    private reservationRepository: Repository<Reservation>,
     private stripeService: StripeService,
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -23,37 +25,40 @@ export class PaymentService {
     });
   }
 
-  async create(createPaymentDto: CreatePaymentDto): Promise<Payment> {
-    const user = await this.userRepository.findOne({
-      where: { id: createPaymentDto.userId },
+  async initiatePayment(
+    reservationId: number,
+  ): Promise<{ clientSecret: string }> {
+    const reservation = await this.reservationRepository.findOne({
+      where: { id: reservationId },
+      relations: ['passenger'],
     });
-    if (!user) {
+    if (!reservation) {
       throw new NotFoundException(
-        `User with ID ${createPaymentDto.userId} not found`,
+        `Reservation with ID ${reservationId} not found`,
       );
     }
 
-    if (!user.stripeUserId) {
-      throw new Error(
-        `User with ID ${createPaymentDto.userId} does not have a Stripe customer ID`,
-      );
-    }
+    const amountInCents = Math.round(reservation.totalAmount * 100);
 
     const paymentIntent = await this.stripeService.createPaymentIntent(
-      Math.round(createPaymentDto.amount * 100),
-      'usd',
-      user.stripeUserId,
+      amountInCents,
+      'eur',
+      reservation.passenger.stripeUserId,
     );
-
     const payment = this.paymentRepository.create({
-      ...createPaymentDto,
+      amount: reservation.totalAmount,
+      paymentDate: new Date(),
+      paymentMethod: 'stripe',
+      status: PaymentStatus.PENDING,
+      reservationId: reservation.id,
+      userId: reservation.passenger.id,
       stripePaymentIntentId: paymentIntent.id,
-      user: user,
     });
 
-    return this.paymentRepository.save(payment);
-  }
+    await this.paymentRepository.save(payment);
 
+    return { clientSecret: paymentIntent.client_secret };
+  }
   async findOne(id: number): Promise<Payment> {
     const payment = await this.paymentRepository.findOne({ where: { id } });
     if (!payment) {
@@ -65,6 +70,44 @@ export class PaymentService {
   async updateStatus(id: number, status: PaymentStatus): Promise<Payment> {
     const payment = await this.findOne(id);
     payment.status = status;
+    return this.paymentRepository.save(payment);
+  }
+  async completePayment(paymentIntentId: string): Promise<Payment> {
+    const payment = await this.paymentRepository.findOne({
+      where: { stripePaymentIntentId: paymentIntentId },
+      relations: ['reservation'],
+    });
+    if (!payment) {
+      throw new NotFoundException(
+        `Payment with PaymentIntent ID ${paymentIntentId} not found`,
+      );
+    }
+
+    const paymentIntent =
+      await this.stripeService.retrievePaymentIntent(paymentIntentId);
+
+    if (paymentIntent.status === 'succeeded') {
+      payment.status = PaymentStatus.COMPLETED;
+      payment.reservation.status = ReservationStatus.CONFIRMED;
+    }
+
+    await this.reservationRepository.save(payment.reservation);
+    return this.paymentRepository.save(payment);
+  }
+
+  async failPayment(paymentIntentId: string): Promise<Payment> {
+    const payment = await this.paymentRepository.findOne({
+      where: { stripePaymentIntentId: paymentIntentId },
+      relations: ['reservation'],
+    });
+    if (!payment) {
+      throw new NotFoundException(
+        `Payment with PaymentIntent ID ${paymentIntentId} not found`,
+      );
+    }
+    payment.status = PaymentStatus.FAILED;
+    payment.reservation.status = ReservationStatus.PAYMENT_FAILED;
+    await this.reservationRepository.save(payment.reservation);
     return this.paymentRepository.save(payment);
   }
 }
