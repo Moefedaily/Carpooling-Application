@@ -24,6 +24,9 @@ export class WebhookController {
     @Req() req: Request,
     @Headers('stripe-signature') signature: string,
   ) {
+    console.log('we are here');
+    console.log(req.body);
+    console.log('stripe-signature', signature);
     if (!signature) {
       throw new BadRequestException('Missing stripe-signature header');
     }
@@ -36,6 +39,7 @@ export class WebhookController {
         signature,
         process.env.STRIPE_WEBHOOK_SECRET,
       );
+      console.log(event.type);
     } catch (err) {
       console.error(`Webhook Error: ${err.message}`);
       throw new BadRequestException(`Webhook Error: ${err.message}`);
