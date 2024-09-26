@@ -4,50 +4,45 @@ import {
   Post,
   Body,
   Param,
+  Put,
   UseGuards,
   Request,
   Logger,
 } from '@nestjs/common';
-import { MessagesService } from './messages.service';
+import { CreateMessageDto } from './dto/create-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MessageService } from './messages.service';
 
-@Controller('messages')
+@Controller('api/messages')
 @UseGuards(JwtAuthGuard)
-export class MessagesController {
-  private logger = new Logger(MessagesController.name);
-  constructor(private readonly messagesService: MessagesService) {}
+export class MessageController {
+  private readonly logger = new Logger(MessageController.name);
+  constructor(private readonly messageService: MessageService) {}
 
-  @Post('trip/:tripId')
-  async createMessage(
-    @Request() req,
-    @Param('tripId') tripId: string,
-    @Body('content') content: string,
-    @Body('receiverId') receiverId?: number,
-  ) {
-    this.logger.debug('Request user: ' + JSON.stringify(req.user));
+  @Post()
+  create(@Body() createMessageDto: CreateMessageDto) {
+    return this.messageService.createMessage(createMessageDto);
+  }
+
+  @Get('conversation/:conversationId')
+  findMessagesForConversation(@Param('conversationId') conversationId: string) {
+    return this.messageService.findMessagesForConversation(+conversationId);
+  }
+
+  @Put(':id/read')
+  update(@Param('id') id: string, @Request() req) {
+    return this.messageService.markAsRead(+id, req.user.userId);
+  }
+
+  @Get('unread-count')
+  getUnreadCount(@Request() req) {
+    return this.messageService.getUnreadCount(req.user.userId);
+  }
+  @Get('recent')
+  async getRecentMessages(@Request() req) {
     this.logger.debug(
-      `Creating message - senderId: ${req.user.userId}, tripId: ${tripId}, content: ${content}, receiverId: ${receiverId}`,
+      `getRecentMessages: ${JSON.stringify(this.messageService.getRecentMessagesForUser(req.user.userId))}`,
     );
-
-    const result = await this.messagesService.createMessage(
-      req.user.userId,
-      +tripId,
-      content,
-      receiverId,
-    );
-
-    this.logger.debug(`Message created: ${JSON.stringify(result)}`);
-
-    return result;
-  }
-
-  @Get('trip/:tripId')
-  async getMessagesForTrip(@Request() req, @Param('tripId') tripId: string) {
-    return this.messagesService.findMessagesForTrip(+tripId, req.user.userId);
-  }
-
-  @Post(':id/read')
-  async markAsRead(@Request() req, @Param('id') id: string) {
-    return this.messagesService.markAsRead(+id, req.user.userId);
+    return this.messageService.getRecentMessagesForUser(req.user.userId);
   }
 }

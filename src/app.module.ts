@@ -18,6 +18,7 @@ import { PaymentModule } from './payment/payment.module';
 import { StripeService } from './stripe/stripe.service';
 import { StripeModule } from './stripe/stripe.module';
 import { WebhookModule } from './webhook/webhook.module';
+import { ConversationModule } from './conversation/conversation.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { WebhookModule } from './webhook/webhook.module';
     PaymentModule,
     StripeModule,
     WebhookModule,
+    ConversationModule,
   ],
   controllers: [AppController],
   providers: [AppService, StripeService],

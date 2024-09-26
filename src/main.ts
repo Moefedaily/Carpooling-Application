@@ -8,11 +8,11 @@ async function bootstrap() {
   app.use('/webhook/stripe', bodyParser.raw({ type: 'application/json' }));
   app.enableCors({
     origin: 'http://localhost:3001',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
+    allowedHeaders: ['Authorization', 'Content-Type'],
   });
   app.useWebSocketAdapter(new IoAdapter(app));
-  app.enableCors();
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

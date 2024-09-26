@@ -1,5 +1,3 @@
-import { Trip } from 'src/trips/entities/trip.entity';
-import { User } from 'src/users/entities/user.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,6 +5,9 @@ import {
   ManyToOne,
   CreateDateColumn,
 } from 'typeorm';
+import { Trip } from 'src/trips/entities/trip.entity';
+import { User } from 'src/users/entities/user.entity';
+import { Conversation } from 'src/conversation/entities/conversation.entity';
 
 @Entity()
 export class Message {
@@ -27,6 +28,9 @@ export class Message {
 
   @ManyToOne(() => Trip, (trip) => trip.messages)
   trip: Trip;
+
+  @ManyToOne(() => Conversation, (conversation) => conversation.messages)
+  conversation: Conversation;
 
   @Column({ default: false })
   isFromConfirmedPassenger: boolean;

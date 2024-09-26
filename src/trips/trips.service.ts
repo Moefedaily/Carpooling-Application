@@ -429,4 +429,12 @@ export class TripsService {
 
     return trips;
   }
+
+  async getUserTrips(userId: number): Promise<Trip[]> {
+    return this.tripsRepository.find({
+      where: [{ driver: { id: userId } }, { passengers: { id: userId } }],
+      relations: ['driver', 'passengers'],
+      order: { departureDate: 'DESC' },
+    });
+  }
 }

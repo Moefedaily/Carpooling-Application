@@ -47,6 +47,11 @@ export class TripsController {
     return this.tripsService.getPopularTrips(limit);
   }
 
+  @Get('user')
+  async getUserTrips(@Request() req) {
+    return this.tripsService.getUserTrips(req.user.userId);
+  }
+
   @Get()
   findAll(@Query('status') status: TripStatus) {
     return this.tripsService.findAll(status);

@@ -12,7 +12,7 @@ import { WsJwtGuard } from 'src/auth/guards/ws-jwt.guard';
 import { Message } from 'src/messages/entities/message.entity';
 
 @UseGuards(WsJwtGuard)
-@WebSocketGateway({ cors: true })
+@WebSocketGateway(3333, { cors: true })
 export class WebsocketGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
@@ -31,6 +31,10 @@ export class WebsocketGateway
     const token =
       client.handshake.auth?.token ||
       client.handshake.headers?.authorization?.split(' ')[1];
+
+    this.logger.debug(
+      `Extracted token: ${token ? token.substring(0, 10) + '...' : 'No token'}`,
+    );
 
     if (!token) {
       this.logger.warn(`No token provided for client ${client.id}`);

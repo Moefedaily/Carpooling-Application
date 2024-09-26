@@ -224,9 +224,9 @@ export class AuthService {
     this.logger.debug(
       `Attempting to verify token: ${token.substring(0, 10)}...`,
     );
-
     try {
-      const payload = this.jwtService.verify(token);
+      const cleanToken = token.startsWith('Bearer ') ? token.slice(7) : token;
+      const payload = this.jwtService.verify(cleanToken);
       this.logger.debug(`Token verified. Payload: ${JSON.stringify(payload)}`);
       return payload;
     } catch (error) {
