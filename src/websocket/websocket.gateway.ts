@@ -73,9 +73,6 @@ export class WebsocketGateway
     console.log(
       `Emitting message to users ${message.sender.id} and ${message.receiver.id}`,
     );
-    this.server
-      .to(`user_${message.sender.id}`)
-      .to(`user_${message.receiver.id}`)
-      .emit('newMessage', message);
+    this.server.to(`user_${message.receiver.id}`).emit('newMessage', message);
   }
 }
