@@ -8,6 +8,8 @@ import {
   Reservation,
   ReservationStatus,
 } from 'src/reservation/entities/reservation.entity';
+import { NotificationType } from 'src/notifications/dto/create-notification.dto';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class PaymentService {
@@ -19,6 +21,7 @@ export class PaymentService {
     @InjectRepository(Reservation)
     private reservationRepository: Repository<Reservation>,
     private stripeService: StripeService,
+    private notificationsService: NotificationsService,
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2024-06-20',
@@ -87,6 +90,13 @@ export class PaymentService {
       await this.stripeService.retrievePaymentIntent(paymentIntentId);
 
     if (paymentIntent.status === 'succeeded') {
+      await this.notificationsService.create({
+        content: `Payment of ${payment.amount} € for your trip has been successfully processed.`,
+        userId: payment.userId,
+        type: NotificationType.PAYMENT_SUCCESS,
+        relatedEntityId: payment.id,
+      });
+
       payment.status = PaymentStatus.COMPLETED;
       payment.reservation.status = ReservationStatus.CONFIRMED;
     }
@@ -108,6 +118,12 @@ export class PaymentService {
     payment.status = PaymentStatus.FAILED;
     payment.reservation.status = ReservationStatus.PAYMENT_FAILED;
     await this.reservationRepository.save(payment.reservation);
+    await this.notificationsService.create({
+      content: `Payment of ${payment.amount} € for your trip has failed. Please update your payment method.`,
+      userId: payment.userId,
+      type: NotificationType.PAYMENT_FAILURE,
+      relatedEntityId: payment.id,
+    });
     return this.paymentRepository.save(payment);
   }
 }

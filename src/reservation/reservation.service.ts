@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Reservation, ReservationStatus } from './entities/reservation.entity';
@@ -9,6 +9,7 @@ import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class ReservationService {
+  private logger = new Logger(ReservationService.name);
   constructor(
     @InjectRepository(Reservation)
     private reservationRepository: Repository<Reservation>,
@@ -23,7 +24,10 @@ export class ReservationService {
   ): Promise<Reservation> {
     const { tripId, passengerId, ...reservationData } = createReservationDto;
 
-    const trip = await this.tripRepository.findOne({ where: { id: tripId } });
+    const trip = await this.tripRepository.findOne({
+      where: { id: tripId },
+      relations: ['driver'],
+    });
     if (!trip) {
       throw new NotFoundException(`Trip with ID ${tripId} not found`);
     }
@@ -42,7 +46,8 @@ export class ReservationService {
       status: ReservationStatus.PENDING,
     });
 
-    return this.reservationRepository.save(reservation);
+    const savedReservation = await this.reservationRepository.save(reservation);
+    return savedReservation;
   }
 
   async findAll(): Promise<Reservation[]> {

@@ -62,4 +62,18 @@ export class NotificationsService {
     notification.isRead = true;
     return this.notificationsRepository.save(notification);
   }
+
+  async recentNotification(userId: number): Promise<Notification[]> {
+    return this.notificationsRepository.find({
+      where: { user: { id: userId } },
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
+  }
+  async getUnreadCount(userId: number): Promise<number> {
+    const notifications = await this.notificationsRepository.find({
+      where: { user: { id: userId }, isRead: false },
+    });
+    return notifications.length;
+  }
 }

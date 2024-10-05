@@ -250,18 +250,20 @@ export class TripsService {
     const updatedTrip = await this.tripsRepository.save(trip);
 
     await this.notificationsService.create({
-      content: `You have joined the trip from ${trip.departureLocation} to ${trip.arrivalLocation} with ${numberOfSeats} seat(s)`,
-      userId: passengerId,
-      type: NotificationType.TRIP_JOINED,
-      relatedEntityId: trip.id,
-    });
-
-    await this.notificationsService.create({
       content: `A new passenger has joined your trip to ${trip.arrivalLocation} with ${numberOfSeats} seat(s)`,
       userId: trip.driver.id,
       type: NotificationType.PASSENGER_JOINED,
       relatedEntityId: trip.id,
     });
+
+    if (trip.availableSeats === 0) {
+      await this.notificationsService.create({
+        content: `Your trip from ${trip.departureLocation} to ${trip.arrivalLocation} is now fully booked.`,
+        userId: trip.driver.id,
+        type: NotificationType.TRIP_FULLY_BOOKED,
+        relatedEntityId: trip.id,
+      });
+    }
 
     return { trip: updatedTrip, reservation };
   }
@@ -305,13 +307,6 @@ export class TripsService {
     const updatedTrip = await this.tripsRepository.save(trip);
 
     await this.notificationsService.create({
-      content: `You have left the trip from ${trip.departureLocation} to ${trip.arrivalLocation}`,
-      userId: passengerId,
-      type: NotificationType.TRIP_LEFT,
-      relatedEntityId: trip.id,
-    });
-
-    await this.notificationsService.create({
       content: `A passenger has left your trip to ${trip.arrivalLocation}`,
       userId: trip.driver.id,
       type: NotificationType.PASSENGER_LEFT,
@@ -353,12 +348,6 @@ export class TripsService {
     const notificationContent =
       this.getStatusUpdateNotificationContent(newStatus);
 
-    await this.notificationsService.create({
-      content: notificationContent,
-      userId: trip.driver.id,
-      type: NotificationType.TRIP_STATUS_UPDATE,
-      relatedEntityId: updatedTrip.id,
-    });
     for (const passenger of trip.passengers) {
       await this.notificationsService.create({
         content: notificationContent,
