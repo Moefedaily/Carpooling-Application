@@ -16,7 +16,7 @@ import {
   errorResponse,
 } from '../utils/response.util';
 
-@Controller('users')
+@Controller('api/users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -31,15 +31,8 @@ export class UsersController {
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<ApiResponse<User>> {
-    try {
-      const user = await this.usersService.findOne(id);
-      return successResponse('User retrieved successfully', user);
-    } catch (error) {
-      return errorResponse('Failed to retrieve user', [error.message]);
-    }
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.findOne(id);
   }
 
   @Patch(':id')

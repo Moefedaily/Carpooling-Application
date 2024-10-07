@@ -91,4 +91,15 @@ export class CarService {
       throw new NotFoundException(`Car with ID ${id} not found`);
     }
   }
+  async carsForUser(userId: number): Promise<Car[]> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['cars'],
+    });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    console.log(`user.car ${JSON.stringify(user.cars)}`);
+    return user.cars;
+  }
 }

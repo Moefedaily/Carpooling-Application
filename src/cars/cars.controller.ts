@@ -28,6 +28,11 @@ export class CarsController {
     return this.carService.create(createCarDto, req.user.userId);
   }
 
+  @Get('/owner')
+  carsForUser(@Request() req) {
+    return this.carService.carsForUser(req.user.userId);
+  }
+
   @Get()
   findAll() {
     return this.carService.findAll();

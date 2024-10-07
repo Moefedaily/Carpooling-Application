@@ -1,9 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
@@ -49,32 +44,33 @@ export class ConversationService {
         { passenger: { id: userId } },
         { trip: { driver: { id: userId } } },
       ],
-      relations: ['trip', 'passenger', 'trip.driver'],
+      relations: ['trip', 'passenger', 'trip.driver', 'messages'],
     });
 
     return conversations;
   }
 
   async findConversation(
-    conversationId: number,
-    userId: number,
+    tripId: number,
+    passengerId: number,
   ): Promise<Conversation> {
-    const conversation = await this.conversationRepository.findOne({
-      where: { id: conversationId },
-      relations: ['trip', 'passenger', 'trip.driver'],
+    let conversation = await this.conversationRepository.findOne({
+      where: { trip: { id: tripId }, passenger: { id: passengerId } },
+      relations: ['trip', 'passenger'],
     });
 
     if (!conversation) {
-      throw new NotFoundException('Conversation not found');
-    }
+      const trip = await this.tripRepository.findOne({ where: { id: tripId } });
+      const passenger = await this.userRepository.findOne({
+        where: { id: passengerId },
+      });
 
-    if (
-      conversation.passenger.id !== userId &&
-      conversation.trip.driver.id !== userId
-    ) {
-      throw new ForbiddenException(
-        'You do not have access to this conversation',
-      );
+      if (!trip || !passenger) {
+        throw new NotFoundException('Trip or Passenger not found');
+      }
+
+      conversation = this.conversationRepository.create({ trip, passenger });
+      await this.conversationRepository.save(conversation);
     }
 
     return conversation;
