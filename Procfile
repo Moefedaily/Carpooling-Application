@@ -1,1 +1,1 @@
-echo "web: npm run start:prod" > Procfile
+web: npm run start:prod
