@@ -1,8 +1,14 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/changePassword-user.dto';
 import * as argon from 'argon2';
 
 @Injectable()
@@ -23,23 +29,19 @@ export class UsersService {
   }
 
   async findOne(id: number): Promise<User> {
-    this.logger.debug(`findOne called with id: ${id}`);
     const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
-      this.logger.warn(`User with ID ${id} not found`);
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    this.logger.debug(`User found: ${JSON.stringify(user)}`);
     return user;
   }
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
+    const user = await this.userRepository.findOne({ where: { id } });
+    this.logger.debug(`update user ${JSON.stringify(user)}`);
 
-    if (updateUserDto.password) {
-      updateUserDto.password = await argon.hash(updateUserDto.password);
-    }
+    this.logger.debug(`update user ${JSON.stringify(updateUserDto)}`);
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -59,7 +61,6 @@ export class UsersService {
   }
   async findByEmail(email: string): Promise<User> {
     const user = await this.userRepository.findOne({ where: { email } });
-    this.logger.debug(`User found: ${JSON.stringify(user)}`);
     if (!user) {
       throw new NotFoundException(`User with email ${email} not found`);
     }
@@ -82,5 +83,23 @@ export class UsersService {
     }
     user.isEmailConfirmed = true;
     return this.userRepository.save(user);
+  }
+  async changePassword(
+    id: number,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<void> {
+    const user = await this.findOne(id);
+
+    const isPasswordValid = await argon.verify(
+      user.password,
+      changePasswordDto.currentPassword,
+    );
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    user.password = await argon.hash(changePasswordDto.newPassword);
+
+    await this.userRepository.save(user);
   }
 }

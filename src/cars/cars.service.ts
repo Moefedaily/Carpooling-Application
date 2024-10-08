@@ -99,7 +99,6 @@ export class CarService {
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
-    console.log(`user.car ${JSON.stringify(user.cars)}`);
     return user.cars;
   }
 }

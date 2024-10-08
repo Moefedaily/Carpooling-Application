@@ -6,6 +6,11 @@ import {
   Delete,
   Body,
   ParseIntPipe,
+  Request,
+  ForbiddenException,
+  Post,
+  Logger,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
@@ -15,9 +20,13 @@ import {
   successResponse,
   errorResponse,
 } from '../utils/response.util';
+import { ChangePasswordDto } from './dto/changePassword-user.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('api/users')
+@UseGuards(JwtAuthGuard)
 export class UsersController {
+  private logger = new Logger(UsersController.name);
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
@@ -36,16 +45,28 @@ export class UsersController {
   }
 
   @Patch(':id')
-  async update(
-    @Param('id', ParseIntPipe) id: number,
+  update(
+    @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
-  ): Promise<ApiResponse<User>> {
-    try {
-      const updatedUser = await this.usersService.update(id, updateUserDto);
-      return successResponse('User updated successfully', updatedUser);
-    } catch (error) {
-      return errorResponse('Failed to update user', [error.message]);
+    @Request() req,
+  ) {
+    this.logger.debug(`update user ${JSON.stringify(updateUserDto)}`);
+    if (req.user.userId !== +id) {
+      throw new ForbiddenException('You can only update your own profile');
     }
+    return this.usersService.update(+id, updateUserDto);
+  }
+
+  @Post(':id/change-password')
+  changePassword(
+    @Param('id') id: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Request() req,
+  ) {
+    if (req.user.userId !== +id) {
+      throw new ForbiddenException('You can only change your own password');
+    }
+    return this.usersService.changePassword(+id, changePasswordDto);
   }
 
   @Delete(':id')

@@ -40,9 +40,6 @@ export class MessageController {
   }
   @Get('recent')
   async getRecentMessages(@Request() req) {
-    this.logger.debug(
-      `getRecentMessages: ${JSON.stringify(this.messageService.getRecentMessagesForUser(req.user.userId))}`,
-    );
     return this.messageService.getRecentMessagesForUser(req.user.userId);
   }
 }
