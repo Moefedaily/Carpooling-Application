@@ -10,6 +10,8 @@ export class EmailService {
 
   async sendUserRegistration(user: User, token: string): Promise<void> {
     const url = `${process.env.FRONT_URL}/pages/auth/confirmEmail?token=${token}`;
+
+    this.logger.log(`URL ${url}`);
     try {
       await this.mailerService.sendMail({
         to: user.email,
