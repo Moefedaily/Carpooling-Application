@@ -12,7 +12,12 @@ import { WsJwtGuard } from 'src/auth/guards/ws-jwt.guard';
 import { Message } from 'src/messages/entities/message.entity';
 
 @UseGuards(WsJwtGuard)
-@WebSocketGateway(3333, { cors: true })
+@WebSocketGateway({
+  cors: {
+    origin: process.env.FRONT_URL || true,
+    credentials: true,
+  },
+})
 export class WebsocketGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
