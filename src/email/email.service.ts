@@ -20,6 +20,7 @@ export class EmailService {
           url,
         },
       });
+      this.logger.debug(`Password length: ${process.env.MAIL_PASSWORD.length}`);
       this.logger.log(`Registration email sent to ${user.email}`);
     } catch (error) {
       this.logger.error(
