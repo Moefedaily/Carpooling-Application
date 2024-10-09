@@ -1,38 +1,31 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from 'src/app.module';
-import { Role } from 'src/roles/entities/role.entity';
-import { DataSource } from 'typeorm';
+import { AppModule } from '../app.module';
+import { getRepository } from 'typeorm';
+import { Role } from '../roles/entities/role.entity';
 
-async function seedRoles() {
+async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const dataSource = app.get(DataSource);
-  const roleRepository = dataSource.getRepository(Role);
+  const roleRepository = getRepository(Role);
 
-  const rolesToSeed = [
-    { name: 'ADMIN' },
-    { name: 'DRIVER' },
-    { name: 'PASSENGER' },
-    { name: 'BOTH' },
-  ];
+  const roles = ['ADMIN', 'DRIVER', 'PASSENGER', 'BOTH'];
 
-  for (const roleData of rolesToSeed) {
+  for (const roleName of roles) {
     const existingRole = await roleRepository.findOne({
-      where: { name: roleData.name },
+      where: { name: roleName },
     });
     if (!existingRole) {
-      const newRole = roleRepository.create(roleData);
+      const newRole = roleRepository.create({ name: roleName });
       await roleRepository.save(newRole);
-      console.log(`Role ${roleData.name} has been created.`);
+      console.log(`Created role: ${roleName}`);
     } else {
-      console.log(`Role ${roleData.name} already exists.`);
+      console.log(`Role already exists: ${roleName}`);
     }
   }
 
-  console.log('Role seeding completed.');
   await app.close();
 }
 
-seedRoles().catch((error) => {
+bootstrap().catch((error) => {
   console.error('Error seeding roles:', error);
   process.exit(1);
 });
