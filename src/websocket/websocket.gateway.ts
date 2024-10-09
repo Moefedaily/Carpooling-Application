@@ -17,7 +17,7 @@ import { Message } from 'src/messages/entities/message.entity';
     origin: process.env.FRONT_URL,
     credentials: true,
   },
-  transports: ['websocket'],
+  transports: ['websocket', 'polling'],
 })
 export class WebsocketGateway
   implements OnGatewayConnection, OnGatewayDisconnect
