@@ -1,2 +1,2 @@
-release: npm run typeorm migration:run && npm run seed:roles
+release: npm run typeorm migration:run
 web: npm run start:prod
