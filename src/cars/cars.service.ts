@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +15,7 @@ import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class CarService {
+  private readonly logger = new Logger(CarService.name);
   constructor(
     @InjectRepository(Car)
     private carRepository: Repository<Car>,
@@ -22,18 +24,28 @@ export class CarService {
   ) {}
 
   async create(createCarDto: CreateCarDto, driverId: number): Promise<Car> {
+    this.logger.debug(`Attempting to create car for driver ID: ${driverId}`);
+
     const user = await this.userRepository.findOne({
       where: { id: driverId },
       relations: ['role'],
     });
 
+    if (!user) {
+      this.logger.error(`User with ID ${driverId} not found`);
+      throw new NotFoundException(`User with ID ${driverId} not found`);
+    }
+
+    this.logger.debug(`User found: ${JSON.stringify(user)}`);
+
+    if (!user.role) {
+      this.logger.error(`Role not found for user with ID ${driverId}`);
+      throw new BadRequestException('User role not defined');
+    }
+
     const existingLicensePlate = await this.carRepository.findOne({
       where: { licensePlate: createCarDto.licensePlate },
     });
-
-    if (!user) {
-      throw new NotFoundException(`User with ID ${driverId} not found`);
-    }
 
     if (existingLicensePlate) {
       throw new BadRequestException('License plate already exists');
