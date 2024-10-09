@@ -3,33 +3,16 @@ import { config } from 'dotenv';
 
 config();
 
-const jawsDbUrl = process.env.JAWSDB_URL;
-let dataSourceConfig: any;
-
-if (jawsDbUrl) {
-  const url = new URL(jawsDbUrl);
-  dataSourceConfig = {
-    type: 'mysql',
-    host: url.hostname,
-    port: parseInt(url.port, 10),
-    username: url.username,
-    password: url.password,
-    database: url.pathname.substr(1),
-  };
-} else {
-  dataSourceConfig = {
-    type: 'mysql',
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT),
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  };
-}
+const databaseUrl = process.env.JAWSDB_URL || process.env.DATABASE_URL;
 
 export const AppDataSource = new DataSource({
-  ...dataSourceConfig,
+  type: 'mysql',
+  url: databaseUrl,
   entities: ['dist/**/*.entity.js'],
   migrations: ['dist/migrations/*.js'],
   synchronize: false,
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : false,
 });
