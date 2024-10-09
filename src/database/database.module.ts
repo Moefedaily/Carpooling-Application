@@ -2,11 +2,9 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { AppDataSource } from 'src/data-source';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot(AppDataSource.options),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService): TypeOrmModuleOptions => {
@@ -22,6 +20,9 @@ import { AppDataSource } from 'src/data-source';
             database: url.pathname.substr(1),
             entities: [__dirname + '/../**/*.entity{.ts,.js}'],
             synchronize: false,
+            ssl: {
+              rejectUnauthorized: false,
+            },
           };
         } else {
           return {
