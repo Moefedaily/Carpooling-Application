@@ -7,7 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use('/webhook/stripe', bodyParser.raw({ type: 'application/json' }));
   app.enableCors({
-    origin: process.env.FRONT_URL,
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
