@@ -15,7 +15,7 @@ async function seedRoles() {
     const dataSource = app.get(DataSource);
     const roleRepository = dataSource.getRepository(Role);
 
-    const roles = ['PASSENGER', 'DRIVER', 'BOTH'];
+    const roles = ['ADMIN', 'DRIVER', 'PASSENGER', 'BOTH'];
 
     for (const roleName of roles) {
       const existingRole = await roleRepository.findOne({
