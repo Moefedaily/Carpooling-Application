@@ -23,6 +23,9 @@
     "seed:roles": "node -r ts-node/register src/seeds/role.seed.ts",
     "postinstall": "npm run build"
   },
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/cli": "^10.4.5",
