@@ -10,7 +10,6 @@ async function bootstrap() {
     origin: process.env.FRONT_URL,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: ['Authorization', 'Content-Type'],
   });
   app.useWebSocketAdapter(new IoAdapter(app));
   app.useGlobalPipes(
