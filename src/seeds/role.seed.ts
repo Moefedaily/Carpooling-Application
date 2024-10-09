@@ -9,8 +9,9 @@ async function seedRoles() {
   const roleRepository = dataSource.getRepository(Role);
 
   const rolesToSeed = [
-    { name: 'PASSENGER' },
+    { name: 'ADMIN' },
     { name: 'DRIVER' },
+    { name: 'PASSENGER' },
     { name: 'BOTH' },
   ];
 
