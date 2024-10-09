@@ -1,13 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
-import { getRepository } from 'typeorm';
 import { Role } from '../roles/entities/role.entity';
+import { getRepository } from 'typeorm';
 
-async function bootstrap() {
+export async function seedRoles() {
   const app = await NestFactory.create(AppModule);
   const roleRepository = getRepository(Role);
 
-  const roles = ['ADMIN', 'DRIVER', 'PASSENGER', 'BOTH'];
+  const roles = ['PASSENGER', 'DRIVER', 'BOTH'];
 
   for (const roleName of roles) {
     const existingRole = await roleRepository.findOne({
@@ -25,7 +25,10 @@ async function bootstrap() {
   await app.close();
 }
 
-bootstrap().catch((error) => {
-  console.error('Error seeding roles:', error);
-  process.exit(1);
-});
+// This allows the function to be called directly when the file is run as a script
+if (require.main === module) {
+  seedRoles().catch((error) => {
+    console.error('Error seeding roles:', error);
+    process.exit(1);
+  });
+}
