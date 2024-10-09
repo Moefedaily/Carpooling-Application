@@ -1,2 +1,2 @@
-release: npm run build && npm run migration:run && NODE_ENV=production npm run seed:roles
+release: npm run build && npm run migration:run && node dist/seeds/role.seed.js
 web: npm run start:prod
