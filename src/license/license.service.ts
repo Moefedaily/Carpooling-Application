@@ -141,13 +141,4 @@ export class LicenseService {
     const timeUntilExpiration = expirationDate.getTime() - now.getTime();
     return timeUntilExpiration;
   }
-
-  async isExpiringSoon(
-    id: number,
-    daysTilExpir: number = 30,
-  ): Promise<boolean> {
-    const timeUntilExpiration = await this.getTimeUntilExpiration(id);
-    const daysUntilExpiration = timeUntilExpiration / (1000 * 60 * 60 * 24);
-    return daysUntilExpiration <= daysTilExpir;
-  }
 }
