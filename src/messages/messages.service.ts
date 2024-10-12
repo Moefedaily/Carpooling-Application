@@ -106,6 +106,14 @@ export class MessageService {
       where: { receiver: { id: userId }, isRead: false },
     });
   }
+
+  async markAllAsRead(userId: number): Promise<void> {
+    await this.messageRepository.update(
+      { receiver: { id: userId }, isRead: false },
+      { isRead: true },
+    );
+  }
+
   async getRecentMessagesForUser(userId: number): Promise<Message[]> {
     return this.messageRepository.find({
       where: [{ receiver: { id: userId } }],
