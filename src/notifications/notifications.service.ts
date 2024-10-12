@@ -70,6 +70,12 @@ export class NotificationsService {
       take: 10,
     });
   }
+  async markAllAsRead(userId: number): Promise<void> {
+    await this.notificationsRepository.update(
+      { user: { id: userId }, isRead: false },
+      { isRead: true },
+    );
+  }
   async getUnreadCount(userId: number): Promise<number> {
     const notifications = await this.notificationsRepository.find({
       where: { user: { id: userId }, isRead: false },
