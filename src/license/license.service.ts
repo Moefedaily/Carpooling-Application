@@ -133,12 +133,4 @@ export class LicenseService {
     const currentDate = new Date();
     return license.expirationDate > currentDate;
   }
-
-  async getTimeUntilExpiration(id: number): Promise<number> {
-    const license = await this.findByDriver(id);
-    const expirationDate = new Date(license.expirationDate);
-    const now = new Date();
-    const timeUntilExpiration = expirationDate.getTime() - now.getTime();
-    return timeUntilExpiration;
-  }
 }
