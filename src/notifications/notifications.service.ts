@@ -63,6 +63,13 @@ export class NotificationsService {
     return this.notificationsRepository.save(notification);
   }
 
+  async markAllAsRead(userId: number): Promise<void> {
+    await this.notificationsRepository.update(
+      { user: { id: userId }, isRead: false },
+      { isRead: true },
+    );
+  }
+
   async recentNotification(userId: number): Promise<Notification[]> {
     return this.notificationsRepository.find({
       where: { user: { id: userId } },
