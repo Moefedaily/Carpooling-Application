@@ -12,7 +12,7 @@ import { WsJwtGuard } from 'src/auth/guards/ws-jwt.guard';
 import { Message } from 'src/messages/entities/message.entity';
 
 @UseGuards(WsJwtGuard)
-@WebSocketGateway(3333, { cors: true })
+@WebSocketGateway(3333, { cors: true, transports: ['websocket', 'polling'] })
 export class WebsocketGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
