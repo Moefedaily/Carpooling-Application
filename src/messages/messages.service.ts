@@ -101,19 +101,17 @@ export class MessageService {
     message.isRead = true;
     return this.messageRepository.save(message);
   }
-  async getUnreadCount(userId: number): Promise<number> {
-    return this.messageRepository.count({
-      where: { receiver: { id: userId }, isRead: false },
-    });
-  }
-
   async markAllAsRead(userId: number): Promise<void> {
     await this.messageRepository.update(
       { receiver: { id: userId }, isRead: false },
       { isRead: true },
     );
   }
-
+  async getUnreadCount(userId: number): Promise<number> {
+    return this.messageRepository.count({
+      where: { receiver: { id: userId }, isRead: false },
+    });
+  }
   async getRecentMessagesForUser(userId: number): Promise<Message[]> {
     return this.messageRepository.find({
       where: [{ receiver: { id: userId } }],
