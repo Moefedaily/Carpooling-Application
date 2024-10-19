@@ -33,6 +33,7 @@ export class MessageController {
   markAllAsRead(@Request() req) {
     return this.messageService.markAllAsRead(req.user.userId);
   }
+
   @Put(':id/read')
   update(@Param('id') id: string, @Request() req) {
     return this.messageService.markAsRead(+id, req.user.userId);
