@@ -50,7 +50,6 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @Request() req,
   ) {
-    this.logger.debug(`update user ${JSON.stringify(updateUserDto)}`);
     if (req.user.userId !== +id) {
       throw new ForbiddenException('You can only update your own profile');
     }
