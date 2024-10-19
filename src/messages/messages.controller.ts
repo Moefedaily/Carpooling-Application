@@ -29,16 +29,15 @@ export class MessageController {
     return this.messageService.findMessagesForConversation(+conversationId);
   }
 
-  @Put('read-all')
-  markAllAsRead(@Request() req) {
-    return this.messageService.markAllAsRead(req.user.userId);
-  }
-
   @Put(':id/read')
   update(@Param('id') id: string, @Request() req) {
     return this.messageService.markAsRead(+id, req.user.userId);
   }
 
+  @Put('read-all')
+  markAllAsRead(@Request() req) {
+    return this.messageService.markAllAsRead(req.user.userId);
+  }
   @Get('unread-count')
   getUnreadCount(@Request() req) {
     return this.messageService.getUnreadCount(req.user.userId);
