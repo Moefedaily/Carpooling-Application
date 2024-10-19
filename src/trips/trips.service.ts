@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, MoreThanOrEqual, Repository } from 'typeorm';
+import { Between, Equal, In, MoreThanOrEqual, Repository } from 'typeorm';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { Trip, TripStatus } from './entities/trip.entity';
@@ -386,36 +386,48 @@ export class TripsService {
   async searchTrips(
     departureLocation: string,
     arrivalLocation: string,
-    departureDate: Date,
+    departureDate: string,
     numberOfPassengers: number,
   ): Promise<Trip[]> {
+    const searchDate = new Date(departureDate);
+    searchDate.setHours(0, 0, 0, 0);
+
+    const endOfSearchDate = new Date(searchDate);
+    endOfSearchDate.setHours(23, 59, 59, 999);
+
+    const currentDate = new Date();
+
+    if (searchDate < currentDate) {
+      return [];
+    }
+
     return this.tripsRepository.find({
       where: {
-        departureLocation,
-        arrivalLocation,
-        departureDate,
+        departureLocation: Equal(departureLocation),
+        arrivalLocation: Equal(arrivalLocation),
+        departureDate: Between(searchDate, endOfSearchDate),
         availableSeats: MoreThanOrEqual(numberOfPassengers),
-        status: In[(TripStatus.PENDING, TripStatus.CONFIRMED)],
+        status: In([TripStatus.PENDING, TripStatus.CONFIRMED]),
       },
       relations: ['driver', 'car'],
+      order: {
+        departureDate: 'ASC',
+        pricePerSeat: 'ASC',
+      },
     });
   }
-
-  async getPopularTrips(limit: number = 5): Promise<Trip[]> {
+  async getCheapestTrips(limit: number = 5): Promise<Trip[]> {
     const trips = await this.tripsRepository.find({
-      relations: ['reservations', 'driver', 'car'],
+      relations: ['driver', 'car'],
       where: {
-        status: In[(TripStatus.PENDING, TripStatus.CONFIRMED, TripStatus.FULL)],
+        status: In([TripStatus.PENDING, TripStatus.CONFIRMED]),
+        departureDate: MoreThanOrEqual(new Date()),
       },
       order: {
-        reservations: {
-          id: 'DESC',
-        },
+        pricePerSeat: 'ASC',
       },
       take: limit,
     });
-
-    trips.sort((a, b) => b.reservations.length - a.reservations.length);
 
     return trips;
   }
