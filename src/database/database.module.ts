@@ -19,7 +19,10 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
             password: url.password,
             database: url.pathname.substr(1),
             entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-            synchronize: true,
+            synchronize: false,
+            ssl: {
+              rejectUnauthorized: false,
+            },
           };
         } else {
           return {

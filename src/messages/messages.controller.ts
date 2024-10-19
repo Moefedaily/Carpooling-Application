@@ -34,6 +34,10 @@ export class MessageController {
     return this.messageService.markAsRead(+id, req.user.userId);
   }
 
+  @Put('read-all')
+  markAllAsRead(@Request() req) {
+    return this.messageService.markAllAsRead(req.user.userId);
+  }
   @Get('unread-count')
   getUnreadCount(@Request() req) {
     return this.messageService.getUnreadCount(req.user.userId);

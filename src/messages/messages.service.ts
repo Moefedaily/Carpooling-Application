@@ -101,6 +101,12 @@ export class MessageService {
     message.isRead = true;
     return this.messageRepository.save(message);
   }
+  async markAllAsRead(userId: number): Promise<void> {
+    await this.messageRepository.update(
+      { receiver: { id: userId }, isRead: false },
+      { isRead: true },
+    );
+  }
   async getUnreadCount(userId: number): Promise<number> {
     return this.messageRepository.count({
       where: { receiver: { id: userId }, isRead: false },

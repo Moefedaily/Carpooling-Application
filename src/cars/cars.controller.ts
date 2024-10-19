@@ -23,11 +23,12 @@ export class CarsController {
   constructor(private readonly carService: CarService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   create(@Request() req, @Body() createCarDto: CreateCarDto) {
+    this.logger.debug(`Request user: ${JSON.stringify(req.user)}`);
     this.logger.debug(`createCarDto: ${JSON.stringify(createCarDto)}`);
     return this.carService.create(createCarDto, req.user.userId);
   }
-
   @Get('/owner')
   carsForUser(@Request() req) {
     return this.carService.carsForUser(req.user.userId);

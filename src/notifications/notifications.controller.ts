@@ -19,6 +19,11 @@ export class NotificationsController {
     return this.notificationsService.findAllForUser(req.user.userId);
   }
 
+  @Post('read-all')
+  async markAllAsRead(@Request() req) {
+    return this.notificationsService.markAllAsRead(req.user.userId);
+  }
+
   @Post(':id/read')
   async markAsRead(@Request() req, @Param('id') id: string) {
     return this.notificationsService.markAsRead(+id, req.user.userId);

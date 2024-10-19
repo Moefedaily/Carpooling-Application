@@ -105,6 +105,7 @@ export class TripsService {
     const query = this.tripsRepository
       .createQueryBuilder('trip')
       .leftJoinAndSelect('trip.passengers', 'passengers')
+      .leftJoinAndSelect('trip.car', 'car')
       .where('trip.driverId = :driverId', { driverId });
 
     if (status) {
