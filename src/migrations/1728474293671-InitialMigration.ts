@@ -12,7 +12,6 @@ export class InitialMigration1728474293671 implements MigrationInterface {
   }
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Create tables if they don't exist
     if (!(await this.tableExists(queryRunner, 'conversation'))) {
       await queryRunner.createTable(
         new Table({
@@ -55,7 +54,6 @@ export class InitialMigration1728474293671 implements MigrationInterface {
       );
     }
 
-    // Proceed with alterations, using IF EXISTS to avoid errors if constraints don't exist
     await queryRunner.query(
       `ALTER TABLE \`conversation\` DROP FOREIGN KEY IF EXISTS \`FK_daef7f1bd73e3c0d064bb722ed4\``,
     );
