@@ -5,7 +5,6 @@ import {
   Param,
   UseGuards,
   Request,
-  Put,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -24,7 +23,7 @@ export class NotificationsController {
   async markAsRead(@Request() req, @Param('id') id: string) {
     return this.notificationsService.markAsRead(+id, req.user.userId);
   }
-  @Put('read-all')
+  @Post('read-all')
   async markAllAsRead(@Request() req) {
     return this.notificationsService.markAllAsRead(req.user.userId);
   }
