@@ -6,6 +6,7 @@ import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { Trip } from 'src/trips/entities/trip.entity';
 import { User } from 'src/users/entities/user.entity';
+import { Payment } from 'src/payment/entities/payment.entity';
 
 @Injectable()
 export class ReservationService {
@@ -17,6 +18,8 @@ export class ReservationService {
     private tripRepository: Repository<Trip>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Payment)
+    private paymentRepository: Repository<Payment>,
   ) {}
 
   async create(
@@ -108,5 +111,24 @@ export class ReservationService {
     });
 
     return reservation;
+  }
+  async removeWithPayments(id: number): Promise<void> {
+    const reservation = await this.reservationRepository.findOne({
+      where: { id },
+    });
+
+    if (!reservation) {
+      throw new NotFoundException(`Reservation with ID "${id}" not found`);
+    }
+
+    const payments = await this.paymentRepository.find({
+      where: { reservationId: id },
+    });
+
+    for (const payment of payments) {
+      await this.paymentRepository.remove(payment);
+    }
+
+    await this.reservationRepository.remove(reservation);
   }
 }

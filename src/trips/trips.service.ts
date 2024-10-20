@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, MoreThanOrEqual, Repository } from 'typeorm';
+import { Between, Equal, In, MoreThanOrEqual, Repository } from 'typeorm';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { Trip, TripStatus } from './entities/trip.entity';
@@ -102,36 +102,32 @@ export class TripsService {
     driverId: number,
     status?: TripStatus,
   ): Promise<Trip[]> {
-    const query = this.tripsRepository
-      .createQueryBuilder('trip')
-      .leftJoinAndSelect('trip.passengers', 'passengers')
-      .leftJoinAndSelect('trip.car', 'car')
-      .where('trip.driverId = :driverId', { driverId });
-
+    const whereCondition: any = { driver: { id: driverId } };
     if (status) {
-      query.andWhere('trip.status = :status', { status });
+      whereCondition.status = status;
     }
 
-    return query.getMany();
+    return this.tripsRepository.find({
+      where: whereCondition,
+      relations: ['passengers', 'car', 'reservations'],
+      order: {
+        departureDate: 'DESC',
+        departureTime: 'DESC',
+      },
+    });
   }
 
   async findPassengerTrips(
     passengerId: number,
     status?: TripStatus,
   ): Promise<Trip[]> {
-    const query = this.tripsRepository
-      .createQueryBuilder('trip')
-      .leftJoinAndSelect('trip.driver', 'driver')
-      .leftJoinAndSelect('trip.passengers', 'passengers')
-      .where('passengers.id = :passengerId', { passengerId });
-
-    if (status) {
-      query.andWhere('trip.status = :status', { status });
-    }
-
-    return query.getMany();
+    const trips = await this.tripsRepository.find({
+      where: { passengers: { id: passengerId }, ...(status && { status }) },
+      relations: ['driver', 'passengers', 'reservations', 'car'],
+      order: { departureDate: 'DESC', departureTime: 'DESC' },
+    });
+    return trips;
   }
-
   async findOne(id: number): Promise<Trip> {
     const trip = await this.tripsRepository.findOne({
       where: { id },
@@ -202,7 +198,6 @@ export class TripsService {
       where: { id: passengerId },
     });
 
-    this.logger.debug(`Joining trip ${trip.id} for passenger ${passengerId}`);
     if (!passenger) {
       throw new NotFoundException('Passenger not found');
     }
@@ -272,50 +267,50 @@ export class TripsService {
   async leaveTrip(id: number, passengerId: number): Promise<Trip> {
     const trip = await this.tripsRepository.findOne({
       where: { id },
-      relations: ['reservations', 'car'],
+      relations: ['reservations', 'car', 'passengers', 'driver'],
     });
-    console.log('Trip:', trip);
 
-    if (
-      trip.status !== TripStatus.PENDING &&
-      trip.status !== TripStatus.CONFIRMED &&
-      trip.status !== TripStatus.FULL
-    ) {
-      throw new BadRequestException(
-        'Can only leave pending, confirmed, or full trips',
-      );
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
     }
-    this.logger.debug('passengerId trip service:', passengerId);
-    this.logger.debug('Id trip service:', id);
 
     const reservation = await this.reservationsService.findByTripAndPassengerId(
       id,
       passengerId,
     );
-    this.logger.debug('Reservation trip service:', reservation);
+
     if (!reservation) {
       throw new BadRequestException(
-        'Passenger does not have a reservation for this trip',
+        'No reservation found for this trip and passenger',
       );
     }
 
-    await this.reservationsService.remove(reservation.id);
+    const passengerIndex = trip.passengers.findIndex(
+      (p) => p.id === passengerId,
+    );
+    if (passengerIndex === -1) {
+      throw new BadRequestException('Passenger is not part of this trip');
+    }
+
+    await this.reservationsService.removeWithPayments(reservation.id);
 
     trip.availableSeats += reservation.numberOfSeats;
+    trip.passengers.splice(passengerIndex, 1);
+
     if (trip.status === TripStatus.FULL) {
       trip.status = TripStatus.CONFIRMED;
     }
 
-    trip.passengers = trip.passengers.filter((p) => p.id !== passengerId);
-
     const updatedTrip = await this.tripsRepository.save(trip);
 
-    await this.notificationsService.create({
-      content: `A passenger has left your trip to ${trip.arrivalLocation}`,
-      userId: trip.driver.id,
-      type: NotificationType.PASSENGER_LEFT,
-      relatedEntityId: trip.id,
-    });
+    if (trip.driver && trip.driver.id) {
+      await this.notificationsService.create({
+        content: `A passenger has left your trip to ${trip.arrivalLocation}`,
+        userId: trip.driver.id,
+        type: NotificationType.PASSENGER_LEFT,
+        relatedEntityId: trip.id,
+      });
+    }
 
     return updatedTrip;
   }
@@ -389,36 +384,48 @@ export class TripsService {
   async searchTrips(
     departureLocation: string,
     arrivalLocation: string,
-    departureDate: Date,
+    departureDate: string,
     numberOfPassengers: number,
   ): Promise<Trip[]> {
+    const searchDate = new Date(departureDate);
+    searchDate.setHours(0, 0, 0, 0);
+
+    const endOfSearchDate = new Date(searchDate);
+    endOfSearchDate.setHours(23, 59, 59, 999);
+
+    const currentDate = new Date();
+
+    if (searchDate < currentDate) {
+      return [];
+    }
+
     return this.tripsRepository.find({
       where: {
-        departureLocation,
-        arrivalLocation,
-        departureDate,
+        departureLocation: Equal(departureLocation),
+        arrivalLocation: Equal(arrivalLocation),
+        departureDate: Between(searchDate, endOfSearchDate),
         availableSeats: MoreThanOrEqual(numberOfPassengers),
-        status: In[(TripStatus.PENDING, TripStatus.CONFIRMED)],
+        status: In([TripStatus.PENDING, TripStatus.CONFIRMED]),
       },
       relations: ['driver', 'car'],
+      order: {
+        departureDate: 'ASC',
+        pricePerSeat: 'ASC',
+      },
     });
   }
-
-  async getPopularTrips(limit: number = 5): Promise<Trip[]> {
+  async getCheapestTrips(limit: number = 5): Promise<Trip[]> {
     const trips = await this.tripsRepository.find({
-      relations: ['reservations', 'driver', 'car'],
+      relations: ['driver', 'car'],
       where: {
-        status: In[(TripStatus.PENDING, TripStatus.CONFIRMED, TripStatus.FULL)],
+        status: In([TripStatus.PENDING, TripStatus.CONFIRMED]),
+        departureDate: MoreThanOrEqual(new Date()),
       },
       order: {
-        reservations: {
-          id: 'DESC',
-        },
+        pricePerSeat: 'ASC',
       },
       take: limit,
     });
-
-    trips.sort((a, b) => b.reservations.length - a.reservations.length);
 
     return trips;
   }

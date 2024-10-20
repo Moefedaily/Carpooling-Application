@@ -31,7 +31,7 @@ export class TripsController {
   async searchTrips(
     @Query('departureLocation') departureLocation: string,
     @Query('arrivalLocation') arrivalLocation: string,
-    @Query('departureDate') departureDate: Date,
+    @Query('departureDate') departureDate: string,
     @Query('numberOfPassengers') numberOfPassengers: number,
   ) {
     return this.tripsService.searchTrips(
@@ -44,7 +44,7 @@ export class TripsController {
 
   @Get('popular')
   async getPopularTrips(@Query('limit', ParseIntPipe) limit: number = 5) {
-    return this.tripsService.getPopularTrips(limit);
+    return this.tripsService.getCheapestTrips(limit);
   }
 
   @Get('user')
