@@ -19,7 +19,7 @@ if (isProduction) {
     synchronize: false,
     ssl: {
       rejectUnauthorized: false,
-    },heroku run npm run migration:generate -- src/migrations/SecondMigration
+    },
   };
 } else {
   config = {
