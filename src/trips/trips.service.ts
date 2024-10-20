@@ -270,7 +270,10 @@ export class TripsService {
   }
 
   async leaveTrip(id: number, passengerId: number): Promise<Trip> {
-    const trip = await this.findOne(id);
+    const trip = await this.tripsRepository.findOne({
+      where: { id },
+      relations: ['reservations', 'car'],
+    });
     console.log('Trip:', trip);
 
     if (
