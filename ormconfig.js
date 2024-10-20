@@ -16,7 +16,7 @@ if (isProduction) {
     cli: {
       migrationsDir: 'src/migrations',
     },
-    synchronize: false,
+    synchronize: true,
     ssl: {
       rejectUnauthorized: false,
     },
