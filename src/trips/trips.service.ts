@@ -102,36 +102,32 @@ export class TripsService {
     driverId: number,
     status?: TripStatus,
   ): Promise<Trip[]> {
-    const query = this.tripsRepository
-      .createQueryBuilder('trip')
-      .leftJoinAndSelect('trip.passengers', 'passengers')
-      .leftJoinAndSelect('trip.car', 'car')
-      .where('trip.driverId = :driverId', { driverId });
-
+    const whereCondition: any = { driver: { id: driverId } };
     if (status) {
-      query.andWhere('trip.status = :status', { status });
+      whereCondition.status = status;
     }
 
-    return query.getMany();
+    return this.tripsRepository.find({
+      where: whereCondition,
+      relations: ['passengers', 'car', 'reservations'],
+      order: {
+        departureDate: 'DESC',
+        departureTime: 'DESC',
+      },
+    });
   }
 
   async findPassengerTrips(
     passengerId: number,
     status?: TripStatus,
   ): Promise<Trip[]> {
-    const query = this.tripsRepository
-      .createQueryBuilder('trip')
-      .leftJoinAndSelect('trip.driver', 'driver')
-      .leftJoinAndSelect('trip.passengers', 'passengers')
-      .where('passengers.id = :passengerId', { passengerId });
-
-    if (status) {
-      query.andWhere('trip.status = :status', { status });
-    }
-
-    return query.getMany();
+    const trips = await this.tripsRepository.find({
+      where: { passengers: { id: passengerId }, ...(status && { status }) },
+      relations: ['driver', 'passengers', 'reservations', 'car'],
+      order: { departureDate: 'DESC', departureTime: 'DESC' },
+    });
+    return trips;
   }
-
   async findOne(id: number): Promise<Trip> {
     const trip = await this.tripsRepository.findOne({
       where: { id },
@@ -202,7 +198,6 @@ export class TripsService {
       where: { id: passengerId },
     });
 
-    this.logger.debug(`Joining trip ${trip.id} for passenger ${passengerId}`);
     if (!passenger) {
       throw new NotFoundException('Passenger not found');
     }
@@ -270,49 +265,52 @@ export class TripsService {
   }
 
   async leaveTrip(id: number, passengerId: number): Promise<Trip> {
-    const trip = await this.findOne(id);
-    console.log('Trip:', trip);
+    const trip = await this.tripsRepository.findOne({
+      where: { id },
+      relations: ['reservations', 'car', 'passengers', 'driver'],
+    });
 
-    if (
-      trip.status !== TripStatus.PENDING &&
-      trip.status !== TripStatus.CONFIRMED &&
-      trip.status !== TripStatus.FULL
-    ) {
-      throw new BadRequestException(
-        'Can only leave pending, confirmed, or full trips',
-      );
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
     }
-    this.logger.debug('passengerId trip service:', passengerId);
-    this.logger.debug('Id trip service:', id);
 
     const reservation = await this.reservationsService.findByTripAndPassengerId(
       id,
       passengerId,
     );
-    this.logger.debug('Reservation trip service:', reservation);
+
     if (!reservation) {
       throw new BadRequestException(
-        'Passenger does not have a reservation for this trip',
+        'No reservation found for this trip and passenger',
       );
     }
 
-    await this.reservationsService.remove(reservation.id);
+    const passengerIndex = trip.passengers.findIndex(
+      (p) => p.id === passengerId,
+    );
+    if (passengerIndex === -1) {
+      throw new BadRequestException('Passenger is not part of this trip');
+    }
+
+    await this.reservationsService.removeWithPayments(reservation.id);
 
     trip.availableSeats += reservation.numberOfSeats;
+    trip.passengers.splice(passengerIndex, 1);
+
     if (trip.status === TripStatus.FULL) {
       trip.status = TripStatus.CONFIRMED;
     }
 
-    trip.passengers = trip.passengers.filter((p) => p.id !== passengerId);
-
     const updatedTrip = await this.tripsRepository.save(trip);
 
-    await this.notificationsService.create({
-      content: `A passenger has left your trip to ${trip.arrivalLocation}`,
-      userId: trip.driver.id,
-      type: NotificationType.PASSENGER_LEFT,
-      relatedEntityId: trip.id,
-    });
+    if (trip.driver && trip.driver.id) {
+      await this.notificationsService.create({
+        content: `A passenger has left your trip to ${trip.arrivalLocation}`,
+        userId: trip.driver.id,
+        type: NotificationType.PASSENGER_LEFT,
+        relatedEntityId: trip.id,
+      });
+    }
 
     return updatedTrip;
   }
