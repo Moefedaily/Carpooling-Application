@@ -9,7 +9,6 @@ export const AppDataSource = new DataSource({
   type: 'mysql',
   url: databaseUrl,
   entities: ['dist/**/*.entity.js'],
-  migrations: ['dist/migrations/*.js'],
   synchronize: false,
   ssl:
     process.env.NODE_ENV === 'production'

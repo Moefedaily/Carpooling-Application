@@ -12,10 +12,6 @@ if (isProduction) {
     password: url.password,
     database: url.pathname.substr(1),
     entities: [__dirname + '/dist/**/*.entity.js'],
-    migrations: ['dist/migrations/*{.ts,.js}'],
-    cli: {
-      migrationsDir: 'src/migrations',
-    },
     synchronize: true,
     ssl: {
       rejectUnauthorized: false,
