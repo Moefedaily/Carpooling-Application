@@ -12,10 +12,11 @@ if (isProduction) {
     password: url.password,
     database: url.pathname.substr(1),
     entities: [__dirname + '/dist/**/*.entity.js'],
-    synchronize: true,
-    ssl: {
-      rejectUnauthorized: false,
+    migrations: ['dist/migrations/*{.ts,.js}'],
+    cli: {
+      migrationsDir: 'src/migrations',
     },
+    synchronize: false,
   };
 } else {
   config = {
